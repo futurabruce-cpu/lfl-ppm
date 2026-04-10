@@ -1153,6 +1153,7 @@ async function submitToDashboard(pdfBase64) {
   try {
     const res = await fetch(`${DASHBOARD_URL}/api/submissions`, {
       method: 'POST',
+      mode: 'cors',
       headers: {'Content-Type':'application/json','x-api-key':API_KEY},
       body: JSON.stringify({
         sheet_type: 'lfl',
@@ -1161,7 +1162,7 @@ async function submitToDashboard(pdfBase64) {
         site_address: siteDetails.address || '',
         service_date: siteDetails.date || new Date().toISOString().split('T')[0],
         answers,
-        pdf_base64: pdfBase64,
+        pdf_base64: null,
       }),
     });
     const data = await res.json();
