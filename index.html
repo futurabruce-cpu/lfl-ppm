@@ -136,9 +136,17 @@
         <img src="ladrillos-logo.png" style="width:40px;height:40px;object-fit:contain;border-radius:8px;" />
         Ladrillos PPM
       </button>
+      <button onclick="startLadrillosCallout()" style="width:100%;padding:18px;background:#fff;border:2px solid #000;border-radius:16px;font-size:20px;font-weight:900;cursor:pointer;color:#000 !important;-webkit-text-fill-color:#000;display:flex;align-items:center;gap:14px;">
+        <img src="ladrillos-logo.png" style="width:40px;height:40px;object-fit:contain;border-radius:8px;" />
+        Ladrillos Callout
+      </button>
       <button onclick="startGOW()" style="width:100%;padding:18px;background:#1f2937;border:none;border-radius:16px;font-size:20px;font-weight:900;cursor:pointer;color:#fff !important;-webkit-text-fill-color:#fff;display:flex;align-items:center;gap:14px;">
         <img src="gow-logo.webp" style="width:40px;height:40px;object-fit:contain;border-radius:8px;background:#fff;padding:2px;" />
         GOW PPM
+      </button>
+      <button onclick="startGOWCallout()" style="width:100%;padding:18px;background:#374151;border:none;border-radius:16px;font-size:20px;font-weight:900;cursor:pointer;color:#fff !important;-webkit-text-fill-color:#fff;display:flex;align-items:center;gap:14px;">
+        <img src="gow-logo.webp" style="width:40px;height:40px;object-fit:contain;border-radius:8px;background:#fff;padding:2px;" />
+        GOW Callout
       </button>
     </div>
     <button onclick="doSignOut()" style="width:100%;padding:12px;margin-top:24px;background:transparent;border:2px solid #ddd;border-radius:12px;font-size:14px;font-weight:700;color:#888;cursor:pointer;">Sign out</button>
@@ -307,9 +315,21 @@ function startLadrillos() {
   window.scrollTo({ top: 0 });
 }
 
+function startLadrillosCallout() {
+  currentJobType = 'lfl_callout';
+  document.getElementById('picker-screen').style.display = 'none';
+  document.getElementById('site-screen').style.display = 'flex';
+  window.scrollTo({ top: 0 });
+}
+
 function startGOW() {
   currentJobType = 'voca';
-  window.location.href = 'https://futurabruce-cpu.github.io/jobRAEF/?user=' + encodeURIComponent(engineerEmail);
+  window.location.href = 'https://futurabruce-cpu.github.io/jobRAEF/?user=' + encodeURIComponent(engineerEmail) + '&jobtype=ppm';
+}
+
+function startGOWCallout() {
+  currentJobType = 'voca_callout';
+  window.location.href = 'https://futurabruce-cpu.github.io/jobRAEF/?user=' + encodeURIComponent(engineerEmail) + '&jobtype=callout';
 }
 
 function doSignOut() {
