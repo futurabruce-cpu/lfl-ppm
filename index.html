@@ -704,14 +704,27 @@ document.getElementById('photo-input').addEventListener('change', function(e) {
   const files = Array.from(e.target.files); if (!files.length) return;
   if (!answers[photoInputTarget]) answers[photoInputTarget] = [];
   const previews = document.getElementById('photo-previews-' + photoInputTarget);
-  files.forEach(file => normalisePhoto(file, dataUrl => {
-    answers[photoInputTarget].push(dataUrl);
+  files.forEach(file => normalisePhoto(file, (dataUrl, uploadedUrl) => {
+    const src = uploadedUrl || dataUrl;
+    answers[photoInputTarget].push(src);
     if (previews) { const img = document.createElement('img'); img.src = dataUrl; img.className = 'photo-thumb'; previews.appendChild(img); }
   }));
   this.value = '';
 });
 
-// Draws photo onto canvas so browser applies EXIF rotation, then returns corrected data URL
+async function uploadPhotoToStorage(blob) {
+  try {
+    const filename = `photos/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/pdfs/${filename}`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON, 'Content-Type': 'image/jpeg' },
+      body: blob,
+    });
+    if (!res.ok) return null;
+    return `${SUPABASE_URL}/storage/v1/object/public/pdfs/${filename}`;
+  } catch(e) { return null; }
+}
+
 function normalisePhoto(file, cb) {
   const reader = new FileReader();
   reader.onload = ev => {
@@ -720,7 +733,11 @@ function normalisePhoto(file, cb) {
       const canvas = document.createElement('canvas');
       canvas.width = img.width; canvas.height = img.height;
       canvas.getContext('2d').drawImage(img, 0, 0);
-      cb(canvas.toDataURL('image/jpeg', 0.85));
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      canvas.toBlob(async blob => {
+        const uploadedUrl = await uploadPhotoToStorage(blob);
+        cb(dataUrl, uploadedUrl);
+      }, 'image/jpeg', 0.7);
     };
     img.src = ev.target.result;
   };
