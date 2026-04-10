@@ -1194,10 +1194,9 @@ async function uploadPDFToDashboard(pdfDoc) {
   const form = new FormData();
   form.append('pdf', blob, 'worksheet.pdf');
   form.append('id', lastSubmissionId);
-  const res = await fetch(`${DASHBOARD_URL}/api/upload-pdf`, {
+  const res = await fetch(`${DASHBOARD_URL}/api/upload-pdf?key=${API_KEY}`, {
     method: 'POST',
     mode: 'cors',
-    headers: {'x-api-key': API_KEY},
     body: form,
   });
   if (!res.ok) throw new Error('HTTP ' + res.status);
