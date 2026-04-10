@@ -1072,7 +1072,7 @@ function showToast(msg, ok=true) {
 }
 
 async function submitToDashboard(pdfBase64) {
-  if (!engineerEmail) { showToast('Not logged in — sheet not saved to dashboard', false); return; }
+  if (!engineerEmail) { showToast('Not logged in — sheet not saved to dashboard', false); alert('DEBUG: no engineerEmail set'); return; }
   try {
     const res = await fetch(`${DASHBOARD_URL}/api/submissions`, {
       method: 'POST',
