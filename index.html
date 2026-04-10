@@ -230,6 +230,7 @@ const SUPABASE_ANON = 'sb_publishable_yqXpIBI9l1PVBKgULZBfDQ_3_GgOUBd';
 // In-memory only — works in private browsing
 let engineerEmail = null;
 let engineerUsername = null;
+let lastSubmissionId = null;
 
 function usernameToEmail(u) {
   const map = {raef:'raef@ppm.local',helen:'helen@ppm.local',gareth:'gareth@ppm.local',dan:'dan@ppm.local',raefprivate:'raefprivate@ppm.local'};
@@ -1094,19 +1095,35 @@ async function submitToDashboard(pdfBase64) {
     });
     const data = await res.json();
     if (res.ok) {
-      showToast('\u2705 Sheet saved to dashboard!');
+      lastSubmissionId = data.id;
+      showToast('✅ Sheet saved to dashboard!');
     } else {
-      showToast('\u274c Dashboard error: ' + (data.error || res.status), false);
+      showToast('❌ Dashboard error: ' + (data.error || res.status), false);
     }
   } catch(e) {
-    showToast('\u274c Failed to reach dashboard: ' + e.message, false);
+    showToast('❌ Failed to reach dashboard: ' + e.message, false);
+  }
+}
+
+async function uploadPDFToDashboard(pdfBase64) {
+  if (!lastSubmissionId) return;
+  try {
+    await fetch(`${DASHBOARD_URL}/api/submissions/${lastSubmissionId}/pdf`, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json','x-api-key':API_KEY},
+      body: JSON.stringify({ pdf_base64: pdfBase64 }),
+    });
+  } catch(e) {
+    console.warn('PDF upload failed:', e.message);
   }
 }
 
 async function exportPDF() {
   try {
     const doc = await buildDoc();
+    const pdfBase64 = doc.output('datauristring').split(',')[1];
     doc.save(getFilename());
+    await uploadPDFToDashboard(pdfBase64);
   } catch(e) { alert('PDF error: ' + e.message); }
 }
 
