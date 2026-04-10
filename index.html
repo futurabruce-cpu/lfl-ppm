@@ -655,6 +655,8 @@ function normalisePhoto(file, cb) {
 
 function showSummary() {
   clearDraft();
+  // Submit to dashboard immediately on completion (no PDF needed)
+  submitToDashboard(null);
   document.getElementById('app-screen').style.display = 'none';
   const sum = document.getElementById('summary-screen');
   sum.style.display = 'flex';
@@ -1099,9 +1101,7 @@ async function submitToDashboard(pdfBase64) {
 async function exportPDF() {
   try {
     const doc = await buildDoc();
-    const pdfBase64 = doc.output('datauristring').split(',')[1];
     doc.save(getFilename());
-    await submitToDashboard(pdfBase64);
   } catch(e) { alert('PDF error: ' + e.message); }
 }
 
