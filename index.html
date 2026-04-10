@@ -736,8 +736,7 @@ function showSummary() {
       showToast('⏳ Uploading PDF...');
       try {
         const doc = await buildDoc();
-        const pdfBase64 = doc.output('datauristring').split(',')[1];
-        await uploadPDFToDashboard(pdfBase64);
+        await uploadPDFToDashboard(doc);
         showToast('✅ PDF saved to dashboard!');
       } catch(e) {
         showToast('❌ PDF upload failed: ' + e.message, false);
@@ -1188,31 +1187,20 @@ async function submitToDashboard(pdfBase64) {
   }
 }
 
-async function uploadPDFToDashboard(pdfBase64) {
-  if (!lastSubmissionId || !pdfBase64) return;
-  try {
-    const byteStr = atob(pdfBase64);
-    const bytes = new Uint8Array(byteStr.length);
-    for (let i = 0; i < byteStr.length; i++) bytes[i] = byteStr.charCodeAt(i);
-    const blob = new Blob([bytes], { type: 'application/pdf' });
-    const filename = `${Date.now()}-${lastSubmissionId}.pdf`;
-    const upRes = await fetch(`${SUPABASE_URL}/storage/v1/object/pdfs/${filename}`, {
-      method: 'POST',
-      mode: 'cors',
-      headers: { 'apikey': SUPABASE_ANON, 'Content-Type': 'application/pdf' },
-      body: blob,
-    });
-    if (!upRes.ok) { console.warn('Storage upload failed:', await upRes.text()); return; }
-    const pdf_url = `${SUPABASE_URL}/storage/v1/object/public/pdfs/${filename}`;
-    await fetch(`${DASHBOARD_URL}/api/submissions/${lastSubmissionId}/pdf-url`, {
-      method: 'PATCH',
-      mode: 'cors',
-      headers: {'Content-Type':'application/json','x-api-key':API_KEY},
-      body: JSON.stringify({ pdf_url }),
-    });
-  } catch(e) {
-    console.warn('PDF upload failed:', e.message);
-  }
+async function uploadPDFToDashboard(pdfDoc) {
+  if (!lastSubmissionId || !pdfDoc) return;
+  const arrayBuf = pdfDoc.output('arraybuffer');
+  const blob = new Blob([arrayBuf], { type: 'application/pdf' });
+  const form = new FormData();
+  form.append('pdf', blob, 'worksheet.pdf');
+  form.append('id', lastSubmissionId);
+  const res = await fetch(`${DASHBOARD_URL}/api/upload-pdf`, {
+    method: 'POST',
+    mode: 'cors',
+    headers: {'x-api-key': API_KEY},
+    body: form,
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
 }
 
 async function exportPDF() {
