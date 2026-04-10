@@ -10,7 +10,9 @@
   <title>Ladrillos Fire PPM</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-text-size-adjust: 100%; }
+    a, button { -webkit-tap-highlight-color: transparent; }
+    input, textarea, button { color: inherit; -webkit-text-fill-color: inherit; }
     :root {
       --red: #F5A800; --dark: #ffffff; --mid: #f0f0f0; --card: #FFF8E7;
       --border: #000000; --text: #111111; --muted: #555555;
@@ -116,7 +118,7 @@
         <label style="font-size:15px;font-weight:700;color:#333;display:block;margin-bottom:6px;">Password</label>
         <input id="login-password" type="password" placeholder="••••••••" class="field-input" style="font-size:16px;padding:14px 16px;" />
       </div>
-      <button onclick="doLogin()" style="width:100%;padding:18px;background:#F5A800;border:2px solid #000;border-radius:14px;font-size:18px;font-weight:900;cursor:pointer;margin-top:4px;">Sign In →</button>
+      <button onclick="doLogin()" style="width:100%;padding:18px;background:#F5A800;border:2px solid #000;border-radius:14px;font-size:18px;font-weight:900;cursor:pointer;margin-top:4px;color:#000 !important;-webkit-text-fill-color:#000;">Sign In →</button>
     </div>
   </div>
 </div>
