@@ -98,8 +98,31 @@
 </head>
 <body>
 
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#1a1a2e;">
+  <div style="background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="width:56px;height:56px;background:#F5A800;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:12px;">🔥</div>
+      <h1 style="font-size:22px;font-weight:900;color:#111;">LFL Fire PPM</h1>
+      <p style="color:#888;font-size:13px;margin-top:4px;">Sign in to start a service sheet</p>
+    </div>
+    <div id="login-error" style="display:none;background:#fef2f2;border:1px solid #fca5a5;color:#dc2626;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;"></div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:13px;font-weight:700;color:#555;display:block;margin-bottom:4px;">Username</label>
+        <input id="login-username" type="text" placeholder="e.g. Raef" class="field-input" />
+      </div>
+      <div>
+        <label style="font-size:13px;font-weight:700;color:#555;display:block;margin-bottom:4px;">Password</label>
+        <input id="login-password" type="password" placeholder="••••••••" class="field-input" />
+      </div>
+      <button onclick="doLogin()" style="width:100%;padding:16px;background:#F5A800;border:2px solid #000;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;margin-top:4px;">Sign In →</button>
+    </div>
+  </div>
+</div>
+
 <!-- SITE DETAILS SCREEN -->
-<div id="site-screen">
+<div id="site-screen" style="display:none;">
   <div class="header">
     <div>
       <h1>LFL Fire PPM</h1>
@@ -197,6 +220,47 @@
 <script>
 const { jsPDF } = window.jspdf;
 const DRAFT_KEY = 'LFL_PPM_draft';
+const DASHBOARD_URL = 'https://ppm-dashboard-ivory.vercel.app';
+const API_KEY = 'ppm_live_2026_secure_key';
+const SUPABASE_URL = 'https://bhsdzgshnegkqewgfgna.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_yqXpIBI9l1PVBKgULZBfDQ_3_GgOUBd';
+
+let engineerEmail = localStorage.getItem('lfl_engineer_email') || null;
+
+function usernameToEmail(u) {
+  const map = {raef:'raef@ppm.local',helen:'helen@ppm.local',gareth:'gareth@ppm.local',dan:'dan@ppm.local',raefprivate:'raefprivate@ppm.local'};
+  const k = u.trim().toLowerCase();
+  return map[k] || (k + '@ppm.local');
+}
+
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if (!username || !password) { errEl.textContent = 'Enter username and password'; errEl.style.display = 'block'; return; }
+  const email = usernameToEmail(username);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: {'apikey': SUPABASE_ANON, 'Content-Type': 'application/json'},
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.access_token) {
+      errEl.textContent = 'Invalid username or password';
+      errEl.style.display = 'block';
+      return;
+    }
+    engineerEmail = email;
+    localStorage.setItem('lfl_engineer_email', email);
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('site-screen').style.display = 'flex';
+  } catch(e) {
+    errEl.textContent = 'Login failed — check connection';
+    errEl.style.display = 'block';
+  }
+}
 
 // ── Questions from LFL certificate template ───────────────────────────────────
 const QUESTIONS = [
@@ -252,6 +316,14 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sd-date').value = new Date().toISOString().split('T')[0];
   if (localStorage.getItem(DRAFT_KEY)) {
     document.getElementById('draft-bar-wrap').style.display = 'block';
+  }
+  // Show login or site screen
+  if (engineerEmail) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('site-screen').style.display = 'flex';
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('site-screen').style.display = 'none';
   }
 });
 
@@ -979,10 +1051,34 @@ async function buildDoc() {
   return doc;
 }
 
+async function submitToDashboard(pdfBase64) {
+  if (!engineerEmail) return;
+  try {
+    await fetch(`${DASHBOARD_URL}/api/submissions`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','x-api-key':API_KEY},
+      body: JSON.stringify({
+        sheet_type: 'lfl',
+        engineer_email: engineerEmail,
+        site_name: siteDetails.property || siteDetails.locRef || 'Unknown',
+        site_address: siteDetails.address || '',
+        service_date: siteDetails.date || new Date().toISOString().split('T')[0],
+        answers,
+        pdf_base64: pdfBase64,
+      }),
+    });
+    console.log('Submitted to dashboard');
+  } catch(e) {
+    console.warn('Dashboard submission failed:', e.message);
+  }
+}
+
 async function exportPDF() {
   try {
     const doc = await buildDoc();
+    const pdfBase64 = doc.output('datauristring').split(',')[1];
     doc.save(getFilename());
+    await submitToDashboard(pdfBase64);
   } catch(e) { alert('PDF error: ' + e.message); }
 }
 
