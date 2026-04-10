@@ -1189,17 +1189,21 @@ async function submitToDashboard(pdfBase64) {
 
 async function uploadPDFToDashboard(pdfDoc) {
   if (!lastSubmissionId || !pdfDoc) return;
-  const arrayBuf = pdfDoc.output('arraybuffer');
-  const blob = new Blob([arrayBuf], { type: 'application/pdf' });
-  const form = new FormData();
-  form.append('pdf', blob, 'worksheet.pdf');
-  form.append('id', lastSubmissionId);
-  const res = await fetch(`${DASHBOARD_URL}/api/upload-pdf?key=${API_KEY}`, {
-    method: 'POST',
-    mode: 'cors',
-    body: form,
-  });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const pdfBase64 = pdfDoc.output('datauristring').split(',')[1];
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    const res = await fetch(`${DASHBOARD_URL}/api/upload-pdf?key=${API_KEY}`, {
+      method: 'POST',
+      mode: 'cors',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ id: lastSubmissionId, pdf_base64: pdfBase64 }),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function exportPDF() {
