@@ -227,7 +227,9 @@ const API_KEY = 'ppm_live_2026_secure_key';
 const SUPABASE_URL = 'https://bhsdzgshnegkqewgfgna.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_yqXpIBI9l1PVBKgULZBfDQ_3_GgOUBd';
 
-let engineerEmail = localStorage.getItem('lfl_engineer_email') || null;
+// In-memory only — works in private browsing
+let engineerEmail = null;
+let engineerUsername = null;
 
 function usernameToEmail(u) {
   const map = {raef:'raef@ppm.local',helen:'helen@ppm.local',gareth:'gareth@ppm.local',dan:'dan@ppm.local',raefprivate:'raefprivate@ppm.local'};
@@ -239,9 +241,12 @@ async function doLogin() {
   const username = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value;
   const errEl = document.getElementById('login-error');
+  const btn = document.querySelector('#login-screen button');
   errEl.style.display = 'none';
   if (!username || !password) { errEl.textContent = 'Enter username and password'; errEl.style.display = 'block'; return; }
   const email = usernameToEmail(username);
+  btn.textContent = 'Signing in...';
+  btn.disabled = true;
   try {
     const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
       method: 'POST',
@@ -252,15 +257,20 @@ async function doLogin() {
     if (!res.ok || !data.access_token) {
       errEl.textContent = 'Invalid username or password';
       errEl.style.display = 'block';
+      btn.textContent = 'Sign In →';
+      btn.disabled = false;
       return;
     }
+    // Store in memory only
     engineerEmail = email;
-    localStorage.setItem('lfl_engineer_email', email);
+    engineerUsername = username;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('site-screen').style.display = 'flex';
   } catch(e) {
     errEl.textContent = 'Login failed — check connection';
     errEl.style.display = 'block';
+    btn.textContent = 'Sign In →';
+    btn.disabled = false;
   }
 }
 
@@ -319,14 +329,9 @@ window.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem(DRAFT_KEY)) {
     document.getElementById('draft-bar-wrap').style.display = 'block';
   }
-  // Show login or site screen
-  if (engineerEmail) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('site-screen').style.display = 'flex';
-  } else {
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('site-screen').style.display = 'none';
-  }
+  // Always show login screen on fresh load
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('site-screen').style.display = 'none';
 });
 
 function saveDraft() {
@@ -1072,7 +1077,7 @@ function showToast(msg, ok=true) {
 }
 
 async function submitToDashboard(pdfBase64) {
-  if (!engineerEmail) { showToast('Not logged in — sheet not saved to dashboard', false); alert('DEBUG: no engineerEmail set'); return; }
+  if (!engineerEmail) { showToast('Not logged in — sheet not saved to dashboard', false); return; }
   try {
     const res = await fetch(`${DASHBOARD_URL}/api/submissions`, {
       method: 'POST',
