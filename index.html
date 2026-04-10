@@ -229,6 +229,7 @@ const QUESTIONS = [
   // Sign-off
   { id: 23, label: "Photo – Fire Panel",          text: "Take a photo of the fire panel on completion.",                  type: "photo" },
   { id: 24, label: "Additional Notes",            text: "Any additional notes or observations for this service visit?",   type: "text" },
+  { id: 27, label: "Comments / Recommendations",  text: "Add any comments, recommendations or observations (these will appear on the Comments Sheet — up to 25 entries).", type: "comments_sheet" },
   { id: 25, label: "Engineer Signature",          text: "Please sign below to confirm this service has been completed.",  type: "signature", sigKey: "engineer" },
   { id: 26, label: "Customer Signature",          text: "Customer name and signature to confirm the service visit.",      type: "customer_sig" },
 ];
@@ -413,6 +414,47 @@ function renderQuestion() {
     card.appendChild(wrap);
     inputEl = null;
 
+  } else if (q.type === 'comments_sheet') {
+    const saved = answers[q.id] ? JSON.parse(answers[q.id]) : [''];
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;';
+    const rows = [];
+
+    function addRow(val) {
+      const idx = rows.length;
+      const rowWrap = document.createElement('div');
+      rowWrap.style.cssText = 'display:flex;align-items:flex-start;gap:8px;';
+      const num = document.createElement('div');
+      num.style.cssText = 'min-width:24px;padding-top:14px;font-size:13px;font-weight:800;color:#888;';
+      num.textContent = idx + 1 + '.';
+      const ta = document.createElement('textarea');
+      ta.className = 'field-input'; ta.rows = 2; ta.placeholder = 'Enter comment…';
+      ta.style.flex = '1';
+      if (val) ta.value = val;
+      ta.oninput = () => { rows[idx] = ta.value; saveComments(); };
+      rows.push(val || '');
+      rowWrap.appendChild(num); rowWrap.appendChild(ta);
+      wrap.insertBefore(rowWrap, addBtn);
+    }
+
+    function saveComments() {
+      answers[q.id] = JSON.stringify(rows.filter(r => r.trim()));
+    }
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'choice-btn';
+    addBtn.style.cssText = 'margin-top:4px;background:#FFF8E7;border:2px dashed #F5A800;color:#333;font-size:14px;';
+    addBtn.textContent = '+ Add another comment';
+    addBtn.onclick = (e) => { e.preventDefault(); if (rows.length < 25) addRow(''); };
+    wrap.appendChild(addBtn);
+
+    // Restore saved rows
+    const initRows = answers[q.id] ? JSON.parse(answers[q.id]) : [];
+    if (initRows.length === 0) { addRow(''); } else { initRows.forEach(r => addRow(r)); }
+
+    card.appendChild(wrap);
+    inputEl = null;
+
   } else if (q.type === 'text') {
     const ta = document.createElement('textarea');
     ta.className = 'field-input'; ta.rows = 4; ta.placeholder = q.placeholder || 'Type your answer…';
@@ -459,7 +501,7 @@ function renderQuestion() {
       next();
     };
     mainArea.appendChild(nextBtn);
-    if (['photo', 'signature', 'customer_sig', 'text'].includes(q.type)) {
+    if (['photo', 'signature', 'customer_sig', 'text', 'comments_sheet'].includes(q.type)) {
       const skip = document.createElement('button');
       skip.className = 'skip-btn'; skip.textContent = 'Skip this step';
       skip.onclick = () => next();
@@ -561,6 +603,11 @@ function showSummary() {
     } else if (q.type === 'battery_calc') {
       try { const bc = JSON.parse(val); display = `<div class="s-value">I1=${bc.I1}A  T1=${bc.T1}h  I2=${bc.I2}A  →  Cmin = ${bc.Cmin} Ah</div>`; }
       catch(e) { display = `<div class="s-value">${val}</div>`; }
+    } else if (q.type === 'comments_sheet') {
+      try {
+        const items = JSON.parse(val);
+        display = items.map((c, i) => `<div class="s-value" style="margin-bottom:4px;"><strong>${i+1}.</strong> ${c}</div>`).join('');
+      } catch(e) { display = `<div class="s-value">${val}</div>`; }
     } else {
       display = `<div class="s-value">${val}</div>`;
     }
@@ -742,8 +789,54 @@ async function buildDoc() {
     try { doc.addImage(answers['sig_customer'],'PNG',margin,y,90,30); y += 36; } catch(e){}
   }
 
+  // ── Page 3: Comments Sheet ──────────────────────────────────────────────────
+  const commentsVal = answers[27];
+  const commentsList = commentsVal ? (() => { try { return JSON.parse(commentsVal); } catch(e) { return []; } })() : [];
+  // Always add comments page
+  doc.addPage(); y = 14;
+
+  // Header
+  doc.setFillColor(245,168,0); doc.setDrawColor(0,0,0); doc.setLineWidth(0.5);
+  doc.rect(0, 0, pageW, 26, 'FD');
+  doc.line(0, 26, pageW, 26);
+  doc.setTextColor(0,0,0); doc.setFontSize(16); doc.setFont('helvetica','bold');
+  doc.text('FIRE ALARM SYSTEM SERVICING CERTIFICATE', margin, 18);
+  y = 32;
+
+  // Site fields
+  const commentHeader = [['Property Name:', siteDetails.property||''], ['Date:', siteDetails.date ? new Date(siteDetails.date+'T00:00:00').toLocaleDateString('en-GB') : ''], ['Engineer:', siteDetails.engineer||'']];
+  commentHeader.forEach(([label, val]) => {
+    doc.setFillColor(245,168,0); doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
+    doc.rect(margin, y-4, 40, 8, 'FD'); doc.rect(margin+40, y-4, contentW-40, 8, 'D');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(0,0,0); doc.text(label, margin+2, y+1);
+    doc.setFont('helvetica','normal'); doc.text(val, margin+42, y+1); y += 9;
+  });
+  y += 4;
+
+  // Section header
+  doc.setFillColor(245,168,0); doc.setDrawColor(0,0,0); doc.setLineWidth(0.5);
+  doc.rect(margin, y-4, contentW, 10, 'FD');
+  doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(0,0,0);
+  doc.text('COMMENTS / RECOMMENDATIONS / OBSERVATIONS', margin+2, y+2); y += 14;
+
+  // 25 numbered rows
+  for (let i = 1; i <= 25; i++) {
+    if (y + 10 > 275) { doc.addPage(); y = 14; }
+    const text = commentsList[i-1] || '';
+    const bg = i % 2 === 0 ? [247,247,247] : [255,255,255];
+    doc.setFillColor(...bg); doc.setDrawColor(0,0,0); doc.setLineWidth(0.3);
+    // Num cell
+    doc.rect(margin, y-3, 10, 9, 'FD');
+    // Content cell
+    doc.rect(margin+10, y-3, contentW-10, 9, 'FD');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(0,0,0);
+    doc.text(String(i), margin+3, y+3);
+    if (text) { doc.setFont('helvetica','normal'); const tl = doc.splitTextToSize(text, contentW-14); doc.text(tl[0], margin+13, y+3); }
+    y += 9;
+  }
+
   // Footer notice
-  y += 4; checkPage(12);
+  y += 4; if (y + 12 > 275) { doc.addPage(); y = 14; }
   doc.setFillColor(245,168,0); doc.setDrawColor(0,0,0); doc.setLineWidth(0.5);
   doc.rect(margin, y, contentW, 10, 'FD');
   doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(0,0,0);
