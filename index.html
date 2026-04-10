@@ -317,9 +317,7 @@ function startLadrillos() {
 
 function startLadrillosCallout() {
   currentJobType = 'lfl_callout';
-  document.getElementById('picker-screen').style.display = 'none';
-  document.getElementById('site-screen').style.display = 'flex';
-  window.scrollTo({ top: 0 });
+  window.location.href = 'https://futurabruce-cpu.github.io/jobRAEF/?user=' + encodeURIComponent(engineerEmail) + '&jobtype=callout&company=ladrillos';
 }
 
 function startGOW() {
