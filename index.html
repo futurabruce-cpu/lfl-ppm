@@ -713,183 +713,257 @@ function getFilename() {
 async function buildDoc() {
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
   const fmtDate = d => d ? new Date(d+'T00:00:00').toLocaleDateString('en-GB') : '';
+  const A = [245,168,0], W = [255,255,255], K = [0,0,0], G = [0,176,80];
+  const M = 10, PW = 210, CW = PW - M*2;
+  const lw = 0.3; // line weight
 
-  // PAGE 1 — Certificate
-  pgHeader(doc);
-  let y = 22;
-
-  cell(doc,PM,y,40,RH,'Certificate No:',{fill:AM,bold:true,fs:7});
-  cell(doc,PM+40,y,CW-40,RH,siteDetails.certNo||'',{fs:7}); y+=RH;
-  y = siteBlock(doc, y); y+=2;
-
-  // Certification statement
-  const stmt = 'I / we being the competent person(s) responsible (as indicated by my / our signatures below) for the servicing of the fire detection and fire alarm system CERTIFY that the said work complies to the best of my / our knowledge and belief with the recommendations of clause 45 of BS 5839-1:2017 quarterly inspection of vented batteries / periodic inspection and test / inspection and test over a 12 month period (delete as applicable), except for the variations, if any, stated in this certificate.';
-  const stLines = doc.setFont('helvetica','normal').setFontSize(7).splitTextToSize(stmt, CW-4);
-  const stH = stLines.length * 3.8 + 4;
-  doc.setFillColor(...AM);doc.setDrawColor(...BK);doc.setLineWidth(0.3);doc.rect(PM,y,CW,stH,'FD');
-  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...BK);
-  doc.text(stLines, PM+2, y+4); y += stH+2;
-
-  // Extent of system
-  cell(doc,PM,y,CW,7,'The extent of liability of the signatory is limited to the system described below. Extent of system covered by this certificate:',{fill:AM,bold:true,fs:6.5}); y+=7;
-  doc.setFillColor(...WH);doc.setDrawColor(...BK);doc.setLineWidth(0.3);doc.rect(PM,y,CW,16,'FD'); y+=18;
-
-  // Variations
-  cell(doc,PM,y,CW,7,'Variations from the recommendations of clause 45 of BS 5839-1:2017 for periodic or annual inspection and test (as applicable):',{fill:AM,bold:true,fs:6.5}); y+=7;
-  doc.setFillColor(...WH);doc.setDrawColor(...BK);doc.rect(PM,y,CW,16,'FD'); y+=18;
-
-  // Logbook row
-  cell(doc,PM,y,CW-38,RH,'Relevant details of the work carried out and faults identified have been entered in the system logbook?',{fs:7});
-  cell(doc,PM+CW-38,y,38,RH,'YES / NO *  (* Delete)',{bold:true,fs:6.5}); y+=RH;
-
-  // False alarms
-  cell(doc,PM,y,CW-52,RH,'Number of false alarms in the last 12 months:',{fill:AM,bold:true,fs:7});
-  cell(doc,PM+CW-52,y,12,RH,'(x)',{fs:7,align:'center'});
-  cell(doc,PM+CW-40,y,40,RH,'Enter Y for Category M Systems, enter "0" below',{fs:6}); y+=RH;
-  cell(doc,PM,y,CW-52,RH,'Number of Automatic Detectors:',{fill:AM,bold:true,fs:7});
-  cell(doc,PM+CW-52,y,52,RH,'(y)',{fs:7,align:'center'}); y+=RH;
-  cell(doc,PM,y,CW-52,RH,'Number of false alarms per 100 Detectors per Annum (x/y)x100:',{fill:AM,bold:true,fs:7});
-  cell(doc,PM+CW-52,y,52,RH,'',{}); y+=RH+2;
-
-  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...BK);
-  doc.text('Any Remedial works / actions deemed necessary are detailed on the Comments Sheet', PM, y+4); y+=8;
-
-  // Sig blocks p1
-  [['On behalf of the client:',''],['On behalf of Ladrillos Facilities Ltd:',siteDetails.engineer||'']].forEach(([lbl,name]) => {
-    y=chk(doc,y,36);
-    cell(doc,PM,y,CW,7,lbl,{fill:AM,bold:true,fs:8}); y+=7;
-    doc.setFillColor(...WH);doc.setDrawColor(...BK);doc.setLineWidth(0.3);
-    doc.rect(PM,y,CW/2-2,14,'FD');doc.rect(PM+CW/2+2,y,CW/2-2,14,'FD'); y+=14;
-    cell(doc,PM,y,CW/2-20,RH,'Print Name: '+name,{fs:7});
-    cell(doc,PM+CW/2-20,y,20,RH,'',{});
-    cell(doc,PM+CW/2+2,y,16,RH,'Date:',{fill:AM,bold:true,fs:7});
-    cell(doc,PM+CW/2+18,y,CW/2-16,RH,'',{fs:7}); y+=RH+1;
-  });
-
-  y = footerBar(doc, y+2);
-
-  // PAGE 2 — Panel / Checklist
-  doc.addPage(); pgHeader(doc); y=22;
-  y = siteBlock(doc, y); y+=2;
-
-  // Type of service
-  cell(doc,PM,y,CW-66,RH,'TYPE OF SERVICE',{fill:AM,bold:true,fs:8});
-  ['Q','B/A','A'].forEach((t,i)=>{
-    cell(doc,PM+CW-66+(i*22),y,22,RH,t+(siteDetails.serviceType===t?' ✓':''),{fill:siteDetails.serviceType===t?AM:WH,bold:true,fs:8,align:'center'});
-  }); y+=RH+2;
-
-  amberBar(doc,y,8,'GENERAL SYSTEM INFORMATION',9); y+=9;
-
-  const hw = CW/2;
-  const pairs = [
-    ['Manufacturer:',     answers[1]||'',  'Model:',                          answers[2]||''],
-    ['Type of System:',   answers[3]||'',  'Location:',                       answers[4]||''],
-    ['Battery Load Test:',answers[5]||'',  'Charging Voltage:',               answers[6]||''],
-    ['MCP Manual Call Point', answers[7]||'', 'Panel Controls',               answers[8]||''],
-    ['H Heat Detector',   answers[9]||'',  'Circuit Monitoring',              answers[10]||''],
-    ['MS Multi Sensor',   answers[11]||'', 'Relays & Shutdowns',              answers[12]||''],
-    ['Optical Detector',  answers[13]||'', 'Audibility Test / Visual Devices',answers[14]||''],
-    ['Indicator Lights & Fault Buzzer', answers[15]||'', 'Linked to Other Premises', answers[16]||''],
-  ];
-  pairs.forEach((r,i)=>{
-    y=chk(doc,y);
-    const bg=i%2===0?ALT:WH, lw=44;
-    cell(doc,PM,      y,lw,    RH,r[0],{fill:AM,bold:true,fs:7});
-    cell(doc,PM+lw,   y,hw-lw, RH,r[1],{fill:bg,fs:8,bold:!!r[1]});
-    cell(doc,PM+hw+1, y,lw,    RH,r[2],{fill:AM,bold:true,fs:7});
-    cell(doc,PM+hw+1+lw,y,hw-lw-1,RH,r[3],{fill:bg,fs:8,bold:!!r[3]});
-    y+=RH;
-  });
-
-  y=chk(doc,y);
-  cell(doc,PM,y,44,RH,'Batteries (Qty / Voltage / Ah)',{fill:AM,bold:true,fs:7});
-  cell(doc,PM+44,y,CW-44,RH,answers[17]||'',{fs:8,bold:!!(answers[17])}); y+=RH;
-
-  y=chk(doc,y);
-  let bcTxt='';
-  if(answers[18]){try{const b=JSON.parse(answers[18]);bcTxt=`I1=${b.I1}A   T1=${b.T1}h   I2=${b.I2}A   →   Cmin = ${b.Cmin} Ah`;}catch(e){}}
-  cell(doc,PM,y,55,RH,'Cmin = [(I1×T1)+I2] × 1.25',{fill:AM,bold:true,fs:7});
-  cell(doc,PM+55,y,CW-55,RH,bcTxt,{fill:[220,255,220],fs:8,bold:!!bcTxt}); y+=RH+2;
-
-  amberBar(doc,y,8,'MONITORING',9); y+=9;
-  [
-    [19,'1. Is the system monitored via Intruder alarm Central Station?'],
-    [20,'2. Central Station Telephone Number:'],
-    [21,'3. Central Station has been contacted by Engineer upon completion of testing to restore monitoring?'],
-    [22,'4. Fire Alarm Testing operation has been explained to the signatory below?'],
-  ].forEach(([id,lbl],i)=>{
-    y=chk(doc,y);
-    const bg=i%2===0?ALT:WH;
-    cell(doc,PM,y,CW-36,RH+1,lbl,{fill:AM,bold:true,fs:7});
-    cell(doc,PM+CW-36,y,36,RH+1,answers[id]||'',{fill:bg,fs:9,bold:true,align:'center'});
-    y+=RH+1;
-  }); y+=2;
-
-  // Overall assessment
-  y=chk(doc,y,20);
-  const aStmt='I have inspected and tested the Fire Alarm installation at the above premises in accordance with BS 5839 Part 1 and Log Book completed. The overall assessment is:';
-  const aLines=doc.setFont('helvetica','normal').setFontSize(7).splitTextToSize(aStmt,CW-4);
-  cell(doc,PM,y,CW,aLines.length*3.8+4,aStmt,{fill:AM,fs:7}); y+=aLines.length*3.8+4;
-  y=chk(doc,y,10);
-  cell(doc,PM,y,CW,10,'SATISFACTORY  /  UNSATISFACTORY  /  WITH OBSERVATIONS    (Delete as appropriate)',{bold:true,fs:9,align:'center'}); y+=13;
-
-  // Sig blocks p2
-  [['On behalf of the client:','sig_customer',answers['customer_name']||''],
-   ['On behalf of Ladrillos Facilities Ltd:','sig_engineer',siteDetails.engineer||'']]
-  .forEach(([lbl,sigKey,name])=>{
-    y=chk(doc,y,36);
-    cell(doc,PM,y,CW,7,lbl,{fill:AM,bold:true,fs:8}); y+=7;
-    doc.setFillColor(...WH);doc.setDrawColor(...BK);doc.setLineWidth(0.3);
-    if(answers[sigKey]){try{doc.addImage(answers[sigKey],'PNG',PM,y,70,20);}catch(e){}}
-    doc.rect(PM,y,CW/2-2,20,'D');doc.rect(PM+CW/2+2,y,CW/2-2,20,'D'); y+=20;
-    cell(doc,PM,y,CW/2-18,RH,'Print Name: '+name,{fs:7});
-    cell(doc,PM+CW/2-18,y,18,RH,'',{});
-    cell(doc,PM+CW/2+2,y,16,RH,'Date:',{fill:AM,bold:true,fs:7});
-    cell(doc,PM+CW/2+18,y,CW/2-16,RH,fmtDate(siteDetails.date),{fs:7}); y+=RH+1;
-  });
-
-  // Photos
-  const photoQs=QUESTIONS.filter(q=>q.type==='photo');
-  if(photoQs.some(q=>answers[q.id]?.length)){
-    y=chk(doc,y,14); amberBar(doc,y,8,'PHOTOS',9); y+=10;
-    for(const q of photoQs){
-      if(!answers[q.id]?.length) continue;
-      for(const src of answers[q.id]){
-        y=chk(doc,y,58);
-        try{doc.addImage(src,'JPEG',PM,y,80,55);y+=58;}catch(e){}
-      }
+  // Draw a cell: x,y,w,h, text, bg colour, bold, font size
+  function C(x,y,w,h,txt,bg,bold,fs) {
+    doc.setFillColor(...bg); doc.setDrawColor(...K); doc.setLineWidth(lw);
+    doc.rect(x,y,w,h,'FD');
+    if(txt){
+      doc.setFont('helvetica',bold?'bold':'normal');
+      doc.setFontSize(fs||8); doc.setTextColor(...K);
+      const lines = doc.splitTextToSize(String(txt),w-2.5);
+      doc.text(lines, x+1.5, y + Math.min(h*0.68, h - 1));
     }
   }
 
-  y = footerBar(doc, y+2);
-  doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(150,150,150);
-  doc.text('FAS Cert v3 Dec 2018', PW-PM, y+4, {align:'right'});
+  // ════════════════════════════════════════
+  // PAGE 1 — Certificate cover
+  // ════════════════════════════════════════
 
-  // PAGE 3 — Comments Sheet
-  doc.addPage(); pgHeader(doc); y=22;
-  [['Property Name:',siteDetails.property||''],['Date:',fmtDate(siteDetails.date)],['Engineer:',siteDetails.engineer||'']]
-  .forEach(([lbl,val])=>{
-    cell(doc,PM,y,36,RH,lbl,{fill:AM,bold:true,fs:7});
-    cell(doc,PM+36,y,CW-36,RH,val,{fs:7}); y+=RH;
-  }); y+=3;
+  let y = 8;
 
-  amberBar(doc,y,9,'COMMENTS / RECOMMENDATIONS / OBSERVATIONS',10); y+=10;
-  cell(doc,PM,y,10,8,'No.',{fill:AM,bold:true,fs:7,align:'center'});
-  cell(doc,PM+10,y,CW-10,8,'Comment / Recommendation / Observation',{fill:AM,bold:true,fs:7}); y+=8;
+  // Row 1: Certificate No
+  const cw1=55, cw2=60;
+  const cx = M + (CW - cw1 - cw2)/2;
+  C(cx,       y, cw1, 8, 'Certificate No:', A, true, 8);
+  C(cx+cw1,   y, cw2, 8, siteDetails.certNo||'', W, false, 8);
+  y += 9;
 
-  const cList=(()=>{try{return answers[27]?JSON.parse(answers[27]):[];}catch(e){return[];}})();
+  // Rows 2-4: Location/Date/Property/Engineer/Address
+  const hw = CW/2;
+  C(M,      y, hw,   8, 'LOCATION REF:',   A, true, 8); C(M+hw,    y, hw,   8, siteDetails.locRef||'',     W, false, 8); y+=8;
+  C(M,      y, hw,   8, 'PROPERTY NAME:',  A, true, 8); C(M+hw,    y, hw,   8, siteDetails.property||'',   W, false, 8); y+=8;
+  C(M,      y, 22,   8, 'ADDRESS:',        A, true, 8); C(M+22,    y, CW-22,8, siteDetails.address||'',    W, false, 7); y+=9;
+
+  // Row 5: Certification statement (white bg)
+  const stmtText = 'I / we being the competent person(s) responsible (as indicated by my / our signatures below) for the servicing of the fire detection and fire alarm system, particulars of which are set out below, CERTIFY that the said work for which I / we have been responsible complies to the best of my / our knowledge and belief with the recommendations of clause 45 of BS 5839-1:2017 quarterly inspection of vented batteries / periodic inspection and test / inspection and test over a 12 month period (delete as applicable), except for the variations, if any, stated in this certificate.';
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+  const sl = doc.splitTextToSize(stmtText, CW-3);
+  const sh = sl.length*3.8+4;
+  C(M, y, CW, sh, '', W, false, 7.5);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...K);
+  doc.text(sl, M+1.5, y+3.5); y += sh+1;
+
+  // Row 6-7: Extent of system
+  const extText = 'The extent of liability of the signatory is limited to the system described below. Extent of system covered by this certificate:';
+  C(M, y, CW, 7, extText, A, false, 7); y+=7;
+  C(M, y, CW, 18, '', W, false, 7); y+=19;
+
+  // Row 8-9: Variations
+  const varText = 'Variations from the recommendations of clause 45 of BS 58398-1:2017 for periodic or annual inspection and test (as applicable):';
+  C(M, y, CW, 7, varText, A, false, 7); y+=7;
+  C(M, y, CW, 15, '', W, false, 7); y+=16;
+
+  // Row 10: Logbook
+  C(M,       y, CW-38, 10, 'Relevant details of the work carried out and faults identified have been entered in the system logbook?', A, false, 7.5);
+  C(M+CW-38, y, 38,    10, 'YES / NO *\n* Delete as appropriate', W, true, 7.5); y+=11;
+
+  // Rows 11-13: False alarms
+  const fc = CW - 60, mc = 14, rc = 46;
+  C(M,       y, fc, 8, 'Number of false alarms in the last 12 months:', A, false, 7.5);
+  C(M+fc,    y, mc, 8, '(x)', W, false, 7.5);
+  // right cell spans rows 11-12
+  doc.setFillColor(...W); doc.setDrawColor(...K); doc.setLineWidth(lw);
+  doc.rect(M+fc+mc, y, rc, 16, 'FD');
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...K);
+  doc.text(doc.splitTextToSize('Enter Y in box for Category M Systems and enter "0" below', rc-2), M+fc+mc+1.5, y+4);
+  y+=8;
+  C(M,       y, fc, 8, 'Number of Automatic Detectors:', A, false, 7.5);
+  C(M+fc,    y, mc, 8, '(y)', W, false, 7.5); y+=9;
+  C(M,       y, fc+mc, 8, 'Number of false alarms per 100 Detectors per Annum (x/y)x100:', A, false, 7.5);
+  C(M+fc+mc, y, rc, 8, '', W, false, 7.5); y+=9;
+
+  // Row 14: Remedial works note
+  C(M, y, CW, 8, 'Any Remedial works / actions deemed necessary are detailed on the Comments Sheet', A, true, 8); y+=9;
+
+  // Signature blocks
+  const sigH = 14, nameH = 8;
+  [
+    ['On behalf of the client:', null, ''],
+    ['On behalf of Ladrillos Facilities Ltd:', null, siteDetails.engineer||''],
+  ].forEach(([lbl, sigKey, name]) => {
+    C(M, y, CW, 8, lbl, A, true, 8); y+=8;
+    C(M, y, CW, sigH, '', W, false, 8); y+=sigH;
+    C(M,          y, CW/2-16, nameH, 'Print Name: '+name, A, false, 7.5);
+    C(M+CW/2-16,  y, 16,      nameH, '', W, false, 7.5);
+    C(M+CW/2,     y, 14,      nameH, 'Date:', A, false, 7.5);
+    C(M+CW/2+14,  y, CW/2-14, nameH, '', W, false, 7.5);
+    y += nameH+1;
+  });
+
+  // Footer
+  C(M, y, CW, 9, 'THIS LOG AND CERTIFICATE IS TO REMAIN WITH THE SITE MAINTENANCE LOG BOOK AND MUST BE AVAILABLE FOR INSPECTION BY AUTHORISED PERSONS.', A, true, 7); y+=9;
+
+  // ════════════════════════════════════════
+  // PAGE 2 — Service record
+  // ════════════════════════════════════════
+  doc.addPage(); y=8;
+
+  // Site header (same as p1 but with date/engineer filled)
+  C(M,   y, hw, 8, 'LOCATION REF:',  A, true, 8); C(M+hw,  y, hw, 8, siteDetails.locRef||'',   W, false, 8); y+=8;
+  C(M,   y, hw, 8, 'PROPERTY NAME:', A, true, 8); C(M+hw,  y, hw, 8, siteDetails.property||'', W, false, 8); y+=8;
+  C(M,   y, 22, 8, 'ADDRESS:',       A, true, 8); C(M+22,  y, CW-22, 8, siteDetails.address||'', W, false, 7); y+=9;
+
+  // Type of service row
+  const tsl = CW-72;
+  C(M, y, tsl, 8, 'TYPE OF SERVICE', A, true, 8);
+  ['Q','B/A','A'].forEach((t,i) => {
+    const sel = siteDetails.serviceType===t;
+    C(M+tsl+(i*24), y, 14, 8, t, A, true, 8);
+    C(M+tsl+(i*24)+14, y, 10, 8, sel?'✓':'', sel?A:W, true, 9);
+  }); y+=9;
+
+  // General System Information header
+  C(M, y, CW, 8, 'GENERAL SYSTEM INFORMATION', A, true, 9); y+=9;
+
+  // Two-column paired table: 4 cols — label | input | label | input
+  const lc=44, ic=CW/2-lc, lc2=44, ic2=CW/2-lc2;
+  const pairs = [
+    ['Manufacturer:',                   answers[1]||'',  'Model:',                         answers[2]||''],
+    ['Type of System:',                 answers[3]||'',  'Location:',                      answers[4]||''],
+    ['Battery Load Test:',              answers[5]||'',  'Charging Voltage',               answers[6]||''],
+    ['MCP Manual Call Point',           answers[7]||'',  'Panel Controls',                 answers[8]||''],
+    ['H Heat Detector',                 answers[9]||'',  'Circuit Monitoring',             answers[10]||''],
+    ['MS Multi Sensor',                 answers[11]||'', 'Relays & Shutdowns',             answers[12]||''],
+    ['Optical Detector',                answers[13]||'', 'Audibility Test / Visual Devices',answers[14]||''],
+    ['Indicator Lights & Fault Buzzer', answers[15]||'', 'Linked to Other Premises',       answers[16]||''],
+  ];
+  pairs.forEach(r => {
+    C(M,          y, lc,  8, r[0], A, false, 7.5);
+    C(M+lc,       y, ic,  8, r[1], W, false, 8);
+    C(M+CW/2,     y, lc2, 8, r[2], A, false, 7.5);
+    C(M+CW/2+lc2, y, ic2, 8, r[3], W, false, 8);
+    y+=8;
+  });
+
+  // Batteries full width
+  C(M,    y, lc, 8, 'Batteries (Quantity / Voltage / Ah)', A, false, 7.5);
+  C(M+lc, y, CW-lc, 8, answers[17]||'', W, false, 8); y+=8;
+
+  // Battery calculation rows
+  let bcI1='', bcT1='', bcI2='', bcCmin='';
+  if(answers[18]){try{const b=JSON.parse(answers[18]);bcI1=String(b.I1);bcT1=String(b.T1);bcI2=String(b.I2);bcCmin=String(b.Cmin);}catch(e){}}
+  // Row: Battery Calculation: | I1= [val] | I2= [val]
+  const bc1=32, bc2=16, bc3=16, bc4=16, bc5=16, bc6=CW-bc1-bc2-bc3-bc4-bc5;
+  C(M,                     y, bc1, 8, 'Battery Calculation:', A, false, 7.5);
+  C(M+bc1,                 y, bc2, 8, 'I1 =', A, false, 7.5);
+  C(M+bc1+bc2,             y, bc3, 8, bcI1, W, false, 8);
+  C(M+bc1+bc2+bc3,         y, bc4, 8, 'I2 =', A, false, 7.5);
+  C(M+bc1+bc2+bc3+bc4,     y, bc5, 8, bcI2, W, false, 8);
+  C(M+bc1+bc2+bc3+bc4+bc5, y, bc6, 8, '', W, false, 8); y+=8;
+  // Row: Cmin formula | T1= [val] | C min= [val] Ah
+  const cc1=46, cc2=16, cc3=16, cc4=16, cc5=16, cc6=CW-cc1-cc2-cc3-cc4-cc5;
+  C(M,                     y, cc1, 8, 'Cmin = [(I1xT1)+I2] x 1.25', A, false, 7.5);
+  C(M+cc1,                 y, cc2, 8, 'T1 =', A, false, 7.5);
+  C(M+cc1+cc2,             y, cc3, 8, bcT1, W, false, 8);
+  C(M+cc1+cc2+cc3,         y, cc4, 8, 'C min =', A, false, 7.5);
+  C(M+cc1+cc2+cc3+cc4,     y, cc5, 8, bcCmin||'0', G, false, 8); // green cell
+  C(M+cc1+cc2+cc3+cc4+cc5, y, cc6, 8, 'Ah', W, false, 8); y+=9;
+
+  // Monitoring header + 4 questions
+  C(M, y, CW, 8, 'MONITORING', A, true, 9); y+=8;
+  const monQs = [
+    [19, '1. Is the system monitored via Intruder alarm Central Station?'],
+    [20, '2. Central Station Telephone Number:'],
+    [21, '3. Central Station has been contacted by Engineer upon\ncompletion of testing to restore monitoring?'],
+    [22, '4. Fire Alarm Testing operation has been explanied to\nthe signatory below?'],
+  ];
+  monQs.forEach(([id,lbl]) => {
+    const lines = doc.setFont('helvetica','normal').setFontSize(7.5).splitTextToSize(lbl, CW-55-2.5);
+    const rh = Math.max(8, lines.length*4+3);
+    C(M,       y, CW-55, rh, lbl, A, false, 7.5);
+    C(M+CW-55, y, 55,    rh, answers[id]||'', W, false, 8);
+    y+=rh;
+  }); y+=1;
+
+  // Assessment statement + result
+  const aStmt = 'I have inspected and tested the Fire Alarm installation at the above premises in accordance with BS 5839 Part 1 and Log Book completed. The overall assessment is:';
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+  const al = doc.splitTextToSize(aStmt, CW-2.5);
+  const ah = al.length*3.8+3;
+  C(M, y, CW, ah, '', W, false, 7.5);
+  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...K);
+  doc.text(al, M+1.5, y+3); y+=ah;
+  C(M, y, CW, 9, 'SATISFACTORY with OBSERVATIONS (Delete as appropriate)', W, true, 9); y+=10;
+
+  // Signature blocks p2
+  [
+    ['On behalf of the client:', 'sig_customer', answers['customer_name']||''],
+    ['On behalf of Ladrillos Facilities Ltd:', 'sig_engineer', siteDetails.engineer||''],
+  ].forEach(([lbl,sigKey,name]) => {
+    C(M, y, CW, 8, lbl, A, true, 8); y+=8;
+    doc.setFillColor(...W); doc.setDrawColor(...K); doc.setLineWidth(lw);
+    doc.rect(M, y, CW, sigH, 'FD');
+    if(answers[sigKey]){try{doc.addImage(answers[sigKey],'PNG',M+1,y+1,65,sigH-2);}catch(e){}}
+    y+=sigH;
+    C(M,         y, CW/2-16, nameH, 'Print Name: '+name, A, false, 7.5);
+    C(M+CW/2-16, y, 16,      nameH, '', W, false, 7.5);
+    C(M+CW/2,    y, 14,      nameH, 'Date:', A, false, 7.5);
+    C(M+CW/2+14, y, CW/2-14, nameH, fmtDate(siteDetails.date), W, false, 7.5);
+    y+=nameH+1;
+  });
+
+  // Footer p2
+  C(M, y, CW, 9, 'THIS LOG AND CERTIFICATE IS TO REMAIN WITH THE SITE MAINTENANCE LOG BOOK AND MUST BE AVAILABLE FOR INSPECTION BY AUTHORISED PERSONS.', A, true, 7); y+=9;
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(120,120,120);
+  doc.text('FAS Cert v3 Dec 2018', M+CW, y+4, {align:'right'});
+
+  // ════════════════════════════════════════
+  // PAGE 3 — Comments sheet
+  // ════════════════════════════════════════
+  doc.addPage(); y=8;
+
+  // Top header rows (property/date/engineer)
+  const p3lw=50;
+  [
+    [siteDetails.property||''],
+    [fmtDate(siteDetails.date)],
+    [siteDetails.engineer||''],
+  ].forEach(([val]) => {
+    C(M,      y, p3lw, 7, '', W, false, 7);
+    C(M+p3lw, y, CW-p3lw, 7, val, W, false, 7); y+=7;
+  });
+
+  // Section header
+  C(M, y, CW, 9, 'COMMENTS / RECOMMENDATIONS / OBSERVATIONS', A, true, 10); y+=10;
+
+  // 25 rows: number col (amber) | comment col (white) | 3 tracking cols (white)
+  const nc=10, cc=CW-nc-36, tc=12;
+  const cList = (()=>{try{return answers[27]?JSON.parse(answers[27]):[];}catch(e){return[];}})();
   for(let i=1;i<=25;i++){
-    y=chk(doc,y,9);
-    const txt=cList[i-1]||'', bg=i%2===0?ALT:WH;
-    cell(doc,PM,y,10,9,String(i),{fill:bg,bold:true,fs:7,align:'center'});
-    cell(doc,PM+10,y,CW-10,9,txt,{fill:bg,fs:7}); y+=9;
+    const txt=cList[i-1]||'';
+    const rh=9;
+    C(M,          y, nc,   rh, String(i), A, true, 8);
+    C(M+nc,       y, cc,   rh, txt, W, false, 7.5);
+    C(M+nc+cc,    y, tc,   rh, '', W, false, 7);
+    C(M+nc+cc+tc, y, tc,   rh, '', W, false, 7);
+    C(M+nc+cc+tc+tc, y, tc, rh, '', W, false, 7);
+    y+=rh;
   }
 
-  y = footerBar(doc, y+4);
-  doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(150,150,150);
-  doc.text('FAS Cert v3 Dec 2018', PW-PM, y+4, {align:'right'});
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(120,120,120);
+  doc.text('FAS Cert v3 Dec 2018', M+CW, y+4, {align:'right'});
 
-  pageNums(doc);
+  // Page numbers
+  const np=doc.internal.getNumberOfPages();
+  for(let i=1;i<=np;i++){
+    doc.setPage(i); doc.setFontSize(7); doc.setTextColor(160,160,160); doc.setFont('helvetica','normal');
+    doc.text(`Ladrillos Facilities Ltd  |  Page ${i} of ${np}  |  FAS Cert v3`, PW/2, 295, {align:'center'});
+  }
+
   return doc;
 }
 
