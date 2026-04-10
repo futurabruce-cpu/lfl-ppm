@@ -661,8 +661,11 @@ function normalisePhoto(file, cb) {
 
 function showSummary() {
   clearDraft();
-  // Submit to dashboard immediately on completion (no PDF needed)
-  submitToDashboard(null);
+  // Generate PDF and submit to dashboard in background
+  buildDoc().then(doc => {
+    const pdfBase64 = doc.output('datauristring').split(',')[1];
+    submitToDashboard(pdfBase64);
+  }).catch(() => submitToDashboard(null));
   document.getElementById('app-screen').style.display = 'none';
   const sum = document.getElementById('summary-screen');
   sum.style.display = 'flex';
