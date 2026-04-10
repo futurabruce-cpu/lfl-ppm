@@ -749,17 +749,7 @@ function showSummary() {
   // Generate PDF and submit to dashboard in background
   (async () => {
     await submitToDashboard(null);
-    if (lastSubmissionId) {
-      showToast('⏳ Uploading PDF...');
-      try {
-        const doc = await buildDoc();
-        await uploadPDFToDashboard(doc);
-        showToast('✅ PDF saved to dashboard!');
-      } catch(e) {
-        showToast('❌ PDF upload failed: ' + e.message, false);
-        console.warn('PDF upload failed:', e);
-      }
-    }
+    // PDF is generated server-side automatically — no upload needed from device
   })();
   document.getElementById('app-screen').style.display = 'none';
   const sum = document.getElementById('summary-screen');
