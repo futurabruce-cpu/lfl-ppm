@@ -99,24 +99,24 @@
 <body>
 
 <!-- LOGIN SCREEN -->
-<div id="login-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#1a1a2e;">
-  <div style="background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+<div id="login-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f3f4f6;">
+  <div style="background:#fff;border-radius:24px;padding:48px 40px;width:100%;max-width:440px;box-shadow:0 8px 40px rgba(0,0,0,0.10);">
     <div style="text-align:center;margin-bottom:24px;">
-      <img src="gow-logo.webp" style="width:80px;height:80px;object-fit:contain;margin-bottom:12px;" />
-      <h1 style="font-size:22px;font-weight:900;color:#111;">Ladrillos Fire PPM</h1>
-      <p style="color:#888;font-size:13px;margin-top:4px;">Sign in to start a service sheet</p>
+      <img src="gow-logo.webp" style="width:100px;height:100px;object-fit:contain;margin-bottom:16px;" />
+      <h1 style="font-size:28px;font-weight:900;color:#111;">Ladrillos Fire PPM</h1>
+      <p style="color:#888;font-size:15px;margin-top:6px;">Sign in to start a service sheet</p>
     </div>
-    <div id="login-error" style="display:none;background:#fef2f2;border:1px solid #fca5a5;color:#dc2626;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;"></div>
-    <div style="display:flex;flex-direction:column;gap:12px;">
+    <div id="login-error" style="display:none;background:#fef2f2;border:1px solid #fca5a5;color:#dc2626;border-radius:10px;padding:12px 16px;font-size:14px;margin-bottom:16px;"></div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
       <div>
-        <label style="font-size:13px;font-weight:700;color:#555;display:block;margin-bottom:4px;">Username</label>
-        <input id="login-username" type="text" placeholder="e.g. Raef" class="field-input" />
+        <label style="font-size:15px;font-weight:700;color:#333;display:block;margin-bottom:6px;">Username</label>
+        <input id="login-username" type="text" placeholder="e.g. Raef" class="field-input" style="font-size:16px;padding:14px 16px;" />
       </div>
       <div>
-        <label style="font-size:13px;font-weight:700;color:#555;display:block;margin-bottom:4px;">Password</label>
-        <input id="login-password" type="password" placeholder="••••••••" class="field-input" />
+        <label style="font-size:15px;font-weight:700;color:#333;display:block;margin-bottom:6px;">Password</label>
+        <input id="login-password" type="password" placeholder="••••••••" class="field-input" style="font-size:16px;padding:14px 16px;" />
       </div>
-      <button onclick="doLogin()" style="width:100%;padding:16px;background:#F5A800;border:2px solid #000;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;margin-top:4px;">Sign In →</button>
+      <button onclick="doLogin()" style="width:100%;padding:18px;background:#F5A800;border:2px solid #000;border-radius:14px;font-size:18px;font-weight:900;cursor:pointer;margin-top:4px;">Sign In →</button>
     </div>
   </div>
 </div>
