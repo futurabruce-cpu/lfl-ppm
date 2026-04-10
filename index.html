@@ -445,7 +445,7 @@ function renderQuestion() {
     addBtn.className = 'choice-btn';
     addBtn.style.cssText = 'margin-top:4px;background:#FFF8E7;border:2px dashed #F5A800;color:#333;font-size:14px;';
     addBtn.textContent = '+ Add another comment';
-    addBtn.onclick = (e) => { e.preventDefault(); if (rows.length < 25) addRow(''); };
+    addBtn.onclick = (e) => { e.preventDefault(); if (rows.length < 20) addRow(''); };
     wrap.appendChild(addBtn);
 
     // Restore saved rows
@@ -955,7 +955,7 @@ async function buildDoc() {
   // 25 rows: number col (amber) | comment col (white) | 3 tracking cols (white)
   const nc=10, cc=CW-nc-36, tc=12;
   const cList = (()=>{try{return answers[27]?JSON.parse(answers[27]):[];}catch(e){return[];}})();
-  for(let i=1;i<=25;i++){
+  for(let i=1;i<=20;i++){
     const txt=cList[i-1]||'';
     const rh=9;
     C(M,          y, nc,   rh, String(i), A, true, 8);
