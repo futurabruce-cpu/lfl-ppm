@@ -1059,10 +1059,20 @@ async function buildDoc() {
   return doc;
 }
 
+function showToast(msg, ok=true) {
+  let t = document.getElementById('submit-toast');
+  if (!t) { t = document.createElement('div'); t.id='submit-toast'; t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:14px 24px;border-radius:12px;font-size:15px;font-weight:700;z-index:9999;transition:opacity 0.4s;'; document.body.appendChild(t); }
+  t.style.background = ok ? '#16a34a' : '#dc2626';
+  t.style.color = '#fff';
+  t.textContent = msg;
+  t.style.opacity = '1';
+  setTimeout(() => { t.style.opacity = '0'; }, 4000);
+}
+
 async function submitToDashboard(pdfBase64) {
-  if (!engineerEmail) return;
+  if (!engineerEmail) { showToast('Not logged in — sheet not saved to dashboard', false); return; }
   try {
-    await fetch(`${DASHBOARD_URL}/api/submissions`, {
+    const res = await fetch(`${DASHBOARD_URL}/api/submissions`, {
       method: 'POST',
       headers: {'Content-Type':'application/json','x-api-key':API_KEY},
       body: JSON.stringify({
@@ -1075,9 +1085,14 @@ async function submitToDashboard(pdfBase64) {
         pdf_base64: pdfBase64,
       }),
     });
-    console.log('Submitted to dashboard');
+    const data = await res.json();
+    if (res.ok) {
+      showToast('\u2705 Sheet saved to dashboard!');
+    } else {
+      showToast('\u274c Dashboard error: ' + (data.error || res.status), false);
+    }
   } catch(e) {
-    console.warn('Dashboard submission failed:', e.message);
+    showToast('\u274c Failed to reach dashboard: ' + e.message, false);
   }
 }
 
