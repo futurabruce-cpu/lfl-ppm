@@ -699,16 +699,22 @@ function showSummary() {
     sum.appendChild(item);
   });
 
+  // Action buttons
   const exportBtn = document.createElement('button');
-  exportBtn.className = 'export-btn'; exportBtn.textContent = '📄 Save Service Certificate PDF';
-  exportBtn.onclick = exportPDF; sum.appendChild(exportBtn);
+  exportBtn.className = 'export-btn';
+  exportBtn.innerHTML = '📥 Save PDF to Device';
+  exportBtn.onclick = exportPDF;
+  sum.appendChild(exportBtn);
 
   const emailBtn = document.createElement('button');
-  emailBtn.className = 'email-btn'; emailBtn.textContent = '✉️ Email PDF';
-  emailBtn.onclick = emailPDF; sum.appendChild(emailBtn);
+  emailBtn.className = 'email-btn';
+  emailBtn.innerHTML = '✉️ Email PDF';
+  emailBtn.onclick = emailPDF;
+  sum.appendChild(emailBtn);
 
   const restartBtn = document.createElement('button');
-  restartBtn.className = 'restart-btn'; restartBtn.textContent = '🔄 Start New Service';
+  restartBtn.className = 'restart-btn';
+  restartBtn.innerHTML = '🏠 Return to Home';
   restartBtn.onclick = () => {
     currentIndex = 0; answers = {}; siteDetails = {}; sigContexts = {}; selectedServiceType = '';
     clearDraft();
