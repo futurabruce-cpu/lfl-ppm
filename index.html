@@ -639,12 +639,70 @@ function showSummary() {
 }
 
 // ── PDF Export ────────────────────────────────────────────────────────────────
-function pdfFooter(doc, pageW, margin) {
-  const n = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= n; i++) {
-    doc.setPage(i); doc.setFontSize(8); doc.setTextColor(180,180,180); doc.setFont('helvetica','normal');
-    doc.text(`Ladrillos Facilities Ltd | Fire Alarm Servicing Certificate | Page ${i} of ${n}`, margin, 292);
-    doc.text(new Date().toLocaleDateString('en-GB'), pageW - margin, 292, { align: 'right' });
+const AM = [245,168,0], BK = [0,0,0], WH = [255,255,255], ALT = [247,247,247];
+const PM = 12, PW = 210, CW = PW - PM*2, RH = 9;
+
+function cell(doc, x, y, w, h, txt, {fill=WH,bold=false,fs=8,align='left',border=true}={}) {
+  doc.setFillColor(...fill);
+  if(border){doc.setDrawColor(...BK);doc.setLineWidth(0.3);doc.rect(x,y,w,h,'FD');}else{doc.rect(x,y,w,h,'F');}
+  doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(fs);doc.setTextColor(...BK);
+  const lines=doc.splitTextToSize(String(txt||''),w-4);
+  const ty = y + h*0.65;
+  if(align==='center') doc.text(lines,x+w/2,ty,{align:'center'});
+  else doc.text(lines,x+2,ty);
+}
+
+function amberBar(doc, y, h, txt, fs=10) {
+  doc.setFillColor(...AM);doc.setDrawColor(...BK);doc.setLineWidth(0.5);
+  doc.rect(PM,y,CW,h,'FD');
+  doc.setFont('helvetica','bold');doc.setFontSize(fs);doc.setTextColor(...BK);
+  doc.text(txt, PM+3, y+h*0.68);
+}
+
+function pgHeader(doc) {
+  doc.setFillColor(...AM);doc.setDrawColor(...BK);doc.setLineWidth(0.5);
+  doc.rect(0,0,PW,20,'FD');
+  doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...BK);
+  doc.text('Fire Alarm System Servicing Certificate — Ladrillos Facilities Ltd', PM, 13);
+}
+
+function siteBlock(doc, y) {
+  const hw = CW/2;
+  [[['LOCATION REF:',siteDetails.locRef||'',36,hw-36],['DATE:',siteDetails.date?new Date(siteDetails.date+'T00:00:00').toLocaleDateString('en-GB'):'',16,hw-16]],
+   [['PROPERTY NAME:',siteDetails.property||'',36,hw-36],['ENGINEER:',siteDetails.engineer||'',20,hw-20]],
+   [['ADDRESS:',siteDetails.address||'',20,CW-20],null]]
+  .forEach(pair => {
+    pair.forEach((item,col) => {
+      if(!item) return;
+      const [lbl,val,lw,vw]=item;
+      const x = col===0 ? PM : PM+hw+2;
+      cell(doc,x,y,lw,RH,lbl,{fill:AM,bold:true,fs:7});
+      cell(doc,x+lw,y,vw,RH,val,{fs:7});
+    });
+    y+=RH;
+  });
+  return y;
+}
+
+function chk(doc, y, need=12) {
+  if(y+need>280){doc.addPage();pgHeader(doc);return 24;}
+  return y;
+}
+
+function footerBar(doc, y) {
+  y=chk(doc,y,10);
+  doc.setFillColor(...AM);doc.setDrawColor(...BK);doc.setLineWidth(0.4);
+  doc.rect(PM,y,CW,8,'FD');
+  doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(...BK);
+  doc.text('THIS LOG AND CERTIFICATE IS TO REMAIN WITH THE SITE MAINTENANCE LOG BOOK AND MUST BE AVAILABLE FOR INSPECTION BY AUTHORISED PERSONS.',PM+2,y+5.5);
+  return y+8;
+}
+
+function pageNums(doc) {
+  const n=doc.internal.getNumberOfPages();
+  for(let i=1;i<=n;i++){
+    doc.setPage(i);doc.setFontSize(7);doc.setTextColor(160,160,160);doc.setFont('helvetica','normal');
+    doc.text(`Ladrillos Facilities Ltd  |  Page ${i} of ${n}  |  FAS Cert v3`,PW/2,293,{align:'center'});
   }
 }
 
@@ -654,195 +712,184 @@ function getFilename() {
 
 async function buildDoc() {
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-  const pageW = 210, margin = 14, contentW = pageW - margin * 2;
+  const fmtDate = d => d ? new Date(d+'T00:00:00').toLocaleDateString('en-GB') : '';
 
-  // Header bar — amber/gold to match LFL template
-  doc.setFillColor(245, 168, 0);
-  doc.rect(0, 0, pageW, 26, 'F');
-  doc.setDrawColor(0,0,0); doc.setLineWidth(0.5);
-  doc.line(0, 26, pageW, 26);
-  doc.setTextColor(0,0,0); doc.setFontSize(16); doc.setFont('helvetica','bold');
-  doc.text('FIRE ALARM SYSTEM SERVICING CERTIFICATE', margin, 18);
-  let y = 32;
+  // PAGE 1 — Certificate
+  pgHeader(doc);
+  let y = 22;
 
-  // Certificate details block
-  doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(55,65,81);
-  const certRows = [
-    ['Certificate No:', siteDetails.certNo || ''],
-    ['Location Ref:', siteDetails.locRef || ''],
-    ['Property Name:', siteDetails.property || ''],
-    ['Address:', siteDetails.address || ''],
-    ['Engineer:', siteDetails.engineer || ''],
-    ['Date:', siteDetails.date ? new Date(siteDetails.date+'T00:00:00').toLocaleDateString('en-GB') : ''],
-    ['Type of Service:', siteDetails.serviceType || ''],
-  ];
-  certRows.forEach(([label, val]) => {
-    // Amber label cell
-    doc.setFillColor(245,168,0); doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
-    doc.rect(margin, y-4, 48, 8, 'FD');
-    doc.rect(margin+48, y-4, contentW-48, 8, 'D');
-    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(0,0,0);
-    doc.text(label, margin+2, y+1);
-    doc.setFont('helvetica','normal'); doc.setTextColor(20,20,20);
-    const lines = doc.splitTextToSize(val, contentW - 52);
-    doc.text(lines, margin + 50, y+1); y += 9;
-  });
-
-  y += 3;
-  doc.setDrawColor(200,200,200); doc.line(margin, y, margin+contentW, y); y += 6;
+  cell(doc,PM,y,40,RH,'Certificate No:',{fill:AM,bold:true,fs:7});
+  cell(doc,PM+40,y,CW-40,RH,siteDetails.certNo||'',{fs:7}); y+=RH;
+  y = siteBlock(doc, y); y+=2;
 
   // Certification statement
-  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(60,60,60);
-  const statement = 'I / we being the competent person(s) responsible for the servicing of the fire detection and fire alarm system CERTIFY that the said work complies to the best of my / our knowledge and belief with the recommendations of clause 45 of BS 5839-1:2017 (delete as applicable), except for the variations, if any, stated in this certificate.';
-  const stLines = doc.splitTextToSize(statement, contentW);
-  doc.text(stLines, margin, y); y += stLines.length * 4.5 + 6;
+  const stmt = 'I / we being the competent person(s) responsible (as indicated by my / our signatures below) for the servicing of the fire detection and fire alarm system CERTIFY that the said work complies to the best of my / our knowledge and belief with the recommendations of clause 45 of BS 5839-1:2017 quarterly inspection of vented batteries / periodic inspection and test / inspection and test over a 12 month period (delete as applicable), except for the variations, if any, stated in this certificate.';
+  const stLines = doc.setFont('helvetica','normal').setFontSize(7).splitTextToSize(stmt, CW-4);
+  const stH = stLines.length * 3.8 + 4;
+  doc.setFillColor(...AM);doc.setDrawColor(...BK);doc.setLineWidth(0.3);doc.rect(PM,y,CW,stH,'FD');
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...BK);
+  doc.text(stLines, PM+2, y+4); y += stH+2;
 
-  doc.setDrawColor(200,200,200); doc.line(margin, y, margin+contentW, y); y += 6;
+  // Extent of system
+  cell(doc,PM,y,CW,7,'The extent of liability of the signatory is limited to the system described below. Extent of system covered by this certificate:',{fill:AM,bold:true,fs:6.5}); y+=7;
+  doc.setFillColor(...WH);doc.setDrawColor(...BK);doc.setLineWidth(0.3);doc.rect(PM,y,CW,16,'FD'); y+=18;
 
-  // Checklist section header — amber bar
-  doc.setFillColor(245,168,0); doc.setDrawColor(0,0,0); doc.setLineWidth(0.5);
-  doc.rect(margin, y-4, contentW, 10, 'FD');
-  doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(0,0,0);
-  doc.text('GENERAL SYSTEM INFORMATION & MONITORING', margin+2, y+2); y += 12;
+  // Variations
+  cell(doc,PM,y,CW,7,'Variations from the recommendations of clause 45 of BS 5839-1:2017 for periodic or annual inspection and test (as applicable):',{fill:AM,bold:true,fs:6.5}); y+=7;
+  doc.setFillColor(...WH);doc.setDrawColor(...BK);doc.rect(PM,y,CW,16,'FD'); y+=18;
 
-  const checkPage = (needed=10) => { if (y+needed>275) { doc.addPage(); y=14; } };
+  // Logbook row
+  cell(doc,PM,y,CW-38,RH,'Relevant details of the work carried out and faults identified have been entered in the system logbook?',{fs:7});
+  cell(doc,PM+CW-38,y,38,RH,'YES / NO *  (* Delete)',{bold:true,fs:6.5}); y+=RH;
 
-  for (const q of QUESTIONS) {
-    if (q.type === 'photo' || q.type === 'signature' || q.type === 'customer_sig') continue;
-    const val = answers[q.id];
-    if (val === undefined || val === null || val === '') continue;
+  // False alarms
+  cell(doc,PM,y,CW-52,RH,'Number of false alarms in the last 12 months:',{fill:AM,bold:true,fs:7});
+  cell(doc,PM+CW-52,y,12,RH,'(x)',{fs:7,align:'center'});
+  cell(doc,PM+CW-40,y,40,RH,'Enter Y for Category M Systems, enter "0" below',{fs:6}); y+=RH;
+  cell(doc,PM,y,CW-52,RH,'Number of Automatic Detectors:',{fill:AM,bold:true,fs:7});
+  cell(doc,PM+CW-52,y,52,RH,'(y)',{fs:7,align:'center'}); y+=RH;
+  cell(doc,PM,y,CW-52,RH,'Number of false alarms per 100 Detectors per Annum (x/y)x100:',{fill:AM,bold:true,fs:7});
+  cell(doc,PM+CW-52,y,52,RH,'',{}); y+=RH+2;
 
-    const ql = doc.splitTextToSize(q.text.replace(/\n/g,' '), contentW - 6);
-    const qBoxH = ql.length * 5.5 + 5;
-    checkPage(qBoxH + 14);
+  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...BK);
+  doc.text('Any Remedial works / actions deemed necessary are detailed on the Comments Sheet', PM, y+4); y+=8;
 
-    // Amber label row
-    doc.setFillColor(245,168,0); doc.setDrawColor(0,0,0); doc.setLineWidth(0.3);
-    doc.rect(margin, y-4, contentW, qBoxH, 'FD');
-    doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(0,0,0);
-    doc.text(ql, margin+3, y+1); y += qBoxH + 2;
+  // Sig blocks p1
+  [['On behalf of the client:',''],['On behalf of Ladrillos Facilities Ltd:',siteDetails.engineer||'']].forEach(([lbl,name]) => {
+    y=chk(doc,y,36);
+    cell(doc,PM,y,CW,7,lbl,{fill:AM,bold:true,fs:8}); y+=7;
+    doc.setFillColor(...WH);doc.setDrawColor(...BK);doc.setLineWidth(0.3);
+    doc.rect(PM,y,CW/2-2,14,'FD');doc.rect(PM+CW/2+2,y,CW/2-2,14,'FD'); y+=14;
+    cell(doc,PM,y,CW/2-20,RH,'Print Name: '+name,{fs:7});
+    cell(doc,PM+CW/2-20,y,20,RH,'',{});
+    cell(doc,PM+CW/2+2,y,16,RH,'Date:',{fill:AM,bold:true,fs:7});
+    cell(doc,PM+CW/2+18,y,CW/2-16,RH,'',{fs:7}); y+=RH+1;
+  });
 
-    doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(20,20,20);
-    let displayVal;
-    if (q.type === 'battery_calc') {
-      try { const bc = JSON.parse(val); displayVal = `I1=${bc.I1}A  T1=${bc.T1}h  I2=${bc.I2}A  →  Cmin = ${bc.Cmin} Ah`; }
-      catch(e) { displayVal = String(val); }
-    } else { displayVal = String(val); }
-    const vl = doc.splitTextToSize(displayVal, contentW);
-    doc.text(vl, margin, y); y += vl.length * 6.5 + 2;
+  y = footerBar(doc, y+2);
 
-    doc.setDrawColor(220,220,220); doc.line(margin, y+2, margin+contentW, y+2); y += 8;
-  }
+  // PAGE 2 — Panel / Checklist
+  doc.addPage(); pgHeader(doc); y=22;
+  y = siteBlock(doc, y); y+=2;
 
-  // Photo
-  const photoQs = QUESTIONS.filter(q => q.type === 'photo');
-  if (photoQs.some(q => answers[q.id]?.length)) {
-    y += 4; checkPage(14);
-    doc.setFillColor(245,168,0); doc.setDrawColor(0,0,0); doc.setLineWidth(0.5);
-    doc.rect(margin, y-4, contentW, 10, 'FD');
-    doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(0,0,0);
-    doc.text('PHOTOS', margin+2, y+2); y += 12;
-    for (const q of photoQs) {
-      if (!answers[q.id]?.length) continue;
-      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(80,80,80);
-      doc.text(q.label, margin, y); y += 5;
-      for (const src of answers[q.id]) {
-        checkPage(55);
-        try { doc.addImage(src,'JPEG',margin,y,80,55); y += 60; }
-        catch(e) { doc.setFont('helvetica','italic'); doc.setTextColor(150,150,150); doc.text('[Photo could not be embedded]',margin,y); y += 8; }
+  // Type of service
+  cell(doc,PM,y,CW-66,RH,'TYPE OF SERVICE',{fill:AM,bold:true,fs:8});
+  ['Q','B/A','A'].forEach((t,i)=>{
+    cell(doc,PM+CW-66+(i*22),y,22,RH,t+(siteDetails.serviceType===t?' ✓':''),{fill:siteDetails.serviceType===t?AM:WH,bold:true,fs:8,align:'center'});
+  }); y+=RH+2;
+
+  amberBar(doc,y,8,'GENERAL SYSTEM INFORMATION',9); y+=9;
+
+  const hw = CW/2;
+  const pairs = [
+    ['Manufacturer:',     answers[1]||'',  'Model:',                          answers[2]||''],
+    ['Type of System:',   answers[3]||'',  'Location:',                       answers[4]||''],
+    ['Battery Load Test:',answers[5]||'',  'Charging Voltage:',               answers[6]||''],
+    ['MCP Manual Call Point', answers[7]||'', 'Panel Controls',               answers[8]||''],
+    ['H Heat Detector',   answers[9]||'',  'Circuit Monitoring',              answers[10]||''],
+    ['MS Multi Sensor',   answers[11]||'', 'Relays & Shutdowns',              answers[12]||''],
+    ['Optical Detector',  answers[13]||'', 'Audibility Test / Visual Devices',answers[14]||''],
+    ['Indicator Lights & Fault Buzzer', answers[15]||'', 'Linked to Other Premises', answers[16]||''],
+  ];
+  pairs.forEach((r,i)=>{
+    y=chk(doc,y);
+    const bg=i%2===0?ALT:WH, lw=44;
+    cell(doc,PM,      y,lw,    RH,r[0],{fill:AM,bold:true,fs:7});
+    cell(doc,PM+lw,   y,hw-lw, RH,r[1],{fill:bg,fs:8,bold:!!r[1]});
+    cell(doc,PM+hw+1, y,lw,    RH,r[2],{fill:AM,bold:true,fs:7});
+    cell(doc,PM+hw+1+lw,y,hw-lw-1,RH,r[3],{fill:bg,fs:8,bold:!!r[3]});
+    y+=RH;
+  });
+
+  y=chk(doc,y);
+  cell(doc,PM,y,44,RH,'Batteries (Qty / Voltage / Ah)',{fill:AM,bold:true,fs:7});
+  cell(doc,PM+44,y,CW-44,RH,answers[17]||'',{fs:8,bold:!!(answers[17])}); y+=RH;
+
+  y=chk(doc,y);
+  let bcTxt='';
+  if(answers[18]){try{const b=JSON.parse(answers[18]);bcTxt=`I1=${b.I1}A   T1=${b.T1}h   I2=${b.I2}A   →   Cmin = ${b.Cmin} Ah`;}catch(e){}}
+  cell(doc,PM,y,55,RH,'Cmin = [(I1×T1)+I2] × 1.25',{fill:AM,bold:true,fs:7});
+  cell(doc,PM+55,y,CW-55,RH,bcTxt,{fill:[220,255,220],fs:8,bold:!!bcTxt}); y+=RH+2;
+
+  amberBar(doc,y,8,'MONITORING',9); y+=9;
+  [
+    [19,'1. Is the system monitored via Intruder alarm Central Station?'],
+    [20,'2. Central Station Telephone Number:'],
+    [21,'3. Central Station has been contacted by Engineer upon completion of testing to restore monitoring?'],
+    [22,'4. Fire Alarm Testing operation has been explained to the signatory below?'],
+  ].forEach(([id,lbl],i)=>{
+    y=chk(doc,y);
+    const bg=i%2===0?ALT:WH;
+    cell(doc,PM,y,CW-36,RH+1,lbl,{fill:AM,bold:true,fs:7});
+    cell(doc,PM+CW-36,y,36,RH+1,answers[id]||'',{fill:bg,fs:9,bold:true,align:'center'});
+    y+=RH+1;
+  }); y+=2;
+
+  // Overall assessment
+  y=chk(doc,y,20);
+  const aStmt='I have inspected and tested the Fire Alarm installation at the above premises in accordance with BS 5839 Part 1 and Log Book completed. The overall assessment is:';
+  const aLines=doc.setFont('helvetica','normal').setFontSize(7).splitTextToSize(aStmt,CW-4);
+  cell(doc,PM,y,CW,aLines.length*3.8+4,aStmt,{fill:AM,fs:7}); y+=aLines.length*3.8+4;
+  y=chk(doc,y,10);
+  cell(doc,PM,y,CW,10,'SATISFACTORY  /  UNSATISFACTORY  /  WITH OBSERVATIONS    (Delete as appropriate)',{bold:true,fs:9,align:'center'}); y+=13;
+
+  // Sig blocks p2
+  [['On behalf of the client:','sig_customer',answers['customer_name']||''],
+   ['On behalf of Ladrillos Facilities Ltd:','sig_engineer',siteDetails.engineer||'']]
+  .forEach(([lbl,sigKey,name])=>{
+    y=chk(doc,y,36);
+    cell(doc,PM,y,CW,7,lbl,{fill:AM,bold:true,fs:8}); y+=7;
+    doc.setFillColor(...WH);doc.setDrawColor(...BK);doc.setLineWidth(0.3);
+    if(answers[sigKey]){try{doc.addImage(answers[sigKey],'PNG',PM,y,70,20);}catch(e){}}
+    doc.rect(PM,y,CW/2-2,20,'D');doc.rect(PM+CW/2+2,y,CW/2-2,20,'D'); y+=20;
+    cell(doc,PM,y,CW/2-18,RH,'Print Name: '+name,{fs:7});
+    cell(doc,PM+CW/2-18,y,18,RH,'',{});
+    cell(doc,PM+CW/2+2,y,16,RH,'Date:',{fill:AM,bold:true,fs:7});
+    cell(doc,PM+CW/2+18,y,CW/2-16,RH,fmtDate(siteDetails.date),{fs:7}); y+=RH+1;
+  });
+
+  // Photos
+  const photoQs=QUESTIONS.filter(q=>q.type==='photo');
+  if(photoQs.some(q=>answers[q.id]?.length)){
+    y=chk(doc,y,14); amberBar(doc,y,8,'PHOTOS',9); y+=10;
+    for(const q of photoQs){
+      if(!answers[q.id]?.length) continue;
+      for(const src of answers[q.id]){
+        y=chk(doc,y,58);
+        try{doc.addImage(src,'JPEG',PM,y,80,55);y+=58;}catch(e){}
       }
     }
   }
 
-  // Overall assessment
-  y += 4; checkPage(20);
-  doc.setFillColor(245,168,0); doc.setDrawColor(0,0,0); doc.setLineWidth(0.5);
-  doc.rect(margin, y-4, contentW, 10, 'FD');
-  doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(0,0,0);
-  doc.text('OVERALL ASSESSMENT', margin+2, y+2); y += 14;
-  doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(20,20,20);
-  doc.text('SATISFACTORY  /  UNSATISFACTORY  /  WITH OBSERVATIONS  (Delete as appropriate)', margin, y); y += 14;
+  y = footerBar(doc, y+2);
+  doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(150,150,150);
+  doc.text('FAS Cert v3 Dec 2018', PW-PM, y+4, {align:'right'});
 
-  // Signatures
-  checkPage(50);
-  doc.setFillColor(245,168,0); doc.setDrawColor(0,0,0); doc.setLineWidth(0.5);
-  doc.rect(margin, y-4, contentW, 10, 'FD');
-  doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(0,0,0);
-  doc.text('SIGNATURES', margin+2, y+2); y += 14;
+  // PAGE 3 — Comments Sheet
+  doc.addPage(); pgHeader(doc); y=22;
+  [['Property Name:',siteDetails.property||''],['Date:',fmtDate(siteDetails.date)],['Engineer:',siteDetails.engineer||'']]
+  .forEach(([lbl,val])=>{
+    cell(doc,PM,y,36,RH,lbl,{fill:AM,bold:true,fs:7});
+    cell(doc,PM+36,y,CW-36,RH,val,{fs:7}); y+=RH;
+  }); y+=3;
 
-  if (answers['sig_engineer']) {
-    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(0,0,0);
-    doc.text('On behalf of Ladrillos Facilities Ltd:', margin, y); y += 5;
-    try { doc.addImage(answers['sig_engineer'],'PNG',margin,y,90,30); y += 34; } catch(e){}
-    doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(80,80,80);
-    doc.text('Print Name: ' + (siteDetails.engineer||'') + '     Date: ' + (siteDetails.date ? new Date(siteDetails.date+'T00:00:00').toLocaleDateString('en-GB') : ''), margin, y); y += 10;
+  amberBar(doc,y,9,'COMMENTS / RECOMMENDATIONS / OBSERVATIONS',10); y+=10;
+  cell(doc,PM,y,10,8,'No.',{fill:AM,bold:true,fs:7,align:'center'});
+  cell(doc,PM+10,y,CW-10,8,'Comment / Recommendation / Observation',{fill:AM,bold:true,fs:7}); y+=8;
+
+  const cList=(()=>{try{return answers[27]?JSON.parse(answers[27]):[];}catch(e){return[];}})();
+  for(let i=1;i<=25;i++){
+    y=chk(doc,y,9);
+    const txt=cList[i-1]||'', bg=i%2===0?ALT:WH;
+    cell(doc,PM,y,10,9,String(i),{fill:bg,bold:true,fs:7,align:'center'});
+    cell(doc,PM+10,y,CW-10,9,txt,{fill:bg,fs:7}); y+=9;
   }
 
-  if (answers['sig_customer']) {
-    checkPage(50);
-    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(0,0,0);
-    doc.text('On behalf of the client:', margin, y); y += 5;
-    if (answers['customer_name']) {
-      doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30);
-      doc.text(answers['customer_name'], margin, y); y += 5;
-    }
-    try { doc.addImage(answers['sig_customer'],'PNG',margin,y,90,30); y += 36; } catch(e){}
-  }
+  y = footerBar(doc, y+4);
+  doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(150,150,150);
+  doc.text('FAS Cert v3 Dec 2018', PW-PM, y+4, {align:'right'});
 
-  // ── Page 3: Comments Sheet ──────────────────────────────────────────────────
-  const commentsVal = answers[27];
-  const commentsList = commentsVal ? (() => { try { return JSON.parse(commentsVal); } catch(e) { return []; } })() : [];
-  // Always add comments page
-  doc.addPage(); y = 14;
-
-  // Header
-  doc.setFillColor(245,168,0); doc.setDrawColor(0,0,0); doc.setLineWidth(0.5);
-  doc.rect(0, 0, pageW, 26, 'FD');
-  doc.line(0, 26, pageW, 26);
-  doc.setTextColor(0,0,0); doc.setFontSize(16); doc.setFont('helvetica','bold');
-  doc.text('FIRE ALARM SYSTEM SERVICING CERTIFICATE', margin, 18);
-  y = 32;
-
-  // Site fields
-  const commentHeader = [['Property Name:', siteDetails.property||''], ['Date:', siteDetails.date ? new Date(siteDetails.date+'T00:00:00').toLocaleDateString('en-GB') : ''], ['Engineer:', siteDetails.engineer||'']];
-  commentHeader.forEach(([label, val]) => {
-    doc.setFillColor(245,168,0); doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
-    doc.rect(margin, y-4, 40, 8, 'FD'); doc.rect(margin+40, y-4, contentW-40, 8, 'D');
-    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(0,0,0); doc.text(label, margin+2, y+1);
-    doc.setFont('helvetica','normal'); doc.text(val, margin+42, y+1); y += 9;
-  });
-  y += 4;
-
-  // Section header
-  doc.setFillColor(245,168,0); doc.setDrawColor(0,0,0); doc.setLineWidth(0.5);
-  doc.rect(margin, y-4, contentW, 10, 'FD');
-  doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(0,0,0);
-  doc.text('COMMENTS / RECOMMENDATIONS / OBSERVATIONS', margin+2, y+2); y += 14;
-
-  // 25 numbered rows
-  for (let i = 1; i <= 25; i++) {
-    if (y + 10 > 275) { doc.addPage(); y = 14; }
-    const text = commentsList[i-1] || '';
-    const bg = i % 2 === 0 ? [247,247,247] : [255,255,255];
-    doc.setFillColor(...bg); doc.setDrawColor(0,0,0); doc.setLineWidth(0.3);
-    // Num cell
-    doc.rect(margin, y-3, 10, 9, 'FD');
-    // Content cell
-    doc.rect(margin+10, y-3, contentW-10, 9, 'FD');
-    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(0,0,0);
-    doc.text(String(i), margin+3, y+3);
-    if (text) { doc.setFont('helvetica','normal'); const tl = doc.splitTextToSize(text, contentW-14); doc.text(tl[0], margin+13, y+3); }
-    y += 9;
-  }
-
-  // Footer notice
-  y += 4; if (y + 12 > 275) { doc.addPage(); y = 14; }
-  doc.setFillColor(245,168,0); doc.setDrawColor(0,0,0); doc.setLineWidth(0.5);
-  doc.rect(margin, y, contentW, 10, 'FD');
-  doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(0,0,0);
-  doc.text('THIS LOG AND CERTIFICATE IS TO REMAIN WITH THE SITE MAINTENANCE LOG BOOK AND MUST BE AVAILABLE FOR INSPECTION BY AUTHORISED PERSONS.', margin+2, y+6.5);
-
-  pdfFooter(doc, pageW, margin);
+  pageNums(doc);
   return doc;
 }
 
