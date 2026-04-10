@@ -1184,12 +1184,26 @@ async function submitToDashboard(pdfBase64) {
 }
 
 async function uploadPDFToDashboard(pdfBase64) {
-  if (!lastSubmissionId) return;
+  if (!lastSubmissionId || !pdfBase64) return;
   try {
-    await fetch(`${DASHBOARD_URL}/api/submissions/${lastSubmissionId}/pdf`, {
+    const byteStr = atob(pdfBase64);
+    const bytes = new Uint8Array(byteStr.length);
+    for (let i = 0; i < byteStr.length; i++) bytes[i] = byteStr.charCodeAt(i);
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const filename = `${Date.now()}-${lastSubmissionId}.pdf`;
+    const upRes = await fetch(`${SUPABASE_URL}/storage/v1/object/pdfs/${filename}`, {
+      method: 'POST',
+      mode: 'cors',
+      headers: { 'apikey': SUPABASE_ANON, 'Content-Type': 'application/pdf' },
+      body: blob,
+    });
+    if (!upRes.ok) { console.warn('Storage upload failed:', await upRes.text()); return; }
+    const pdf_url = `${SUPABASE_URL}/storage/v1/object/public/pdfs/${filename}`;
+    await fetch(`${DASHBOARD_URL}/api/submissions/${lastSubmissionId}/pdf-url`, {
       method: 'PATCH',
+      mode: 'cors',
       headers: {'Content-Type':'application/json','x-api-key':API_KEY},
-      body: JSON.stringify({ pdf_base64: pdfBase64 }),
+      body: JSON.stringify({ pdf_url }),
     });
   } catch(e) {
     console.warn('PDF upload failed:', e.message);
