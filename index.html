@@ -1270,10 +1270,10 @@ async function submitToDashboard(pdfBase64) {
 }
 
 async function uploadPDFToDashboard(pdfDoc) {
-  if (!lastSubmissionId || !pdfDoc) return;
+  if (!lastSubmissionId || !pdfDoc) { showToast('⚠️ PDF not uploaded — no submission ID', false); return; }
   const pdfBase64 = pdfDoc.output('datauristring').split(',')[1];
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
   try {
     const res = await fetch(`${DASHBOARD_URL}/api/upload-pdf?key=${API_KEY}`, {
       method: 'POST',
@@ -1283,6 +1283,9 @@ async function uploadPDFToDashboard(pdfDoc) {
       signal: controller.signal,
     });
     if (!res.ok) throw new Error('Upload HTTP ' + res.status);
+    showToast('📄 PDF saved to dashboard');
+  } catch(e) {
+    showToast('⚠️ PDF upload failed: ' + e.message, false);
   } finally {
     clearTimeout(timeout);
   }
