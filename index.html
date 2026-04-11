@@ -787,21 +787,9 @@ function normalisePhoto(file, cb) {
 
 function showSummary() {
   clearDraft();
-  // Generate the proper Ladrillos PDF and submit + upload to dashboard
+  // Submit to dashboard — PDF is generated server-side
   (async () => {
     await submitToDashboard(null);
-    // Generate the real Ladrillos-format PDF and upload it
-    try {
-      const doc = await buildDoc();
-      if (doc && typeof doc.output === 'function') {
-        await uploadPDFToDashboard(doc);
-      } else {
-        showToast('⚠️ PDF could not be generated', false);
-      }
-    } catch(e) {
-      showToast('⚠️ PDF error: ' + e.message, false);
-      console.error('PDF build/upload failed:', e);
-    }
   })();
   document.getElementById('app-screen').style.display = 'none';
   const sum = document.getElementById('summary-screen');
@@ -1244,7 +1232,11 @@ async function submitToDashboard(pdfBase64) {
         job_type: 'PPM',
         company_name: 'Ladrillos',
         follow_up_required: false,
-        answers,
+        answers: Object.assign({}, answers, {
+          loc_ref: siteDetails.locRef || '',
+          cert_no: siteDetails.certNo || '',
+          service_type: siteDetails.serviceType || '',
+        }),
         pdf_base64: null,
       }),
     });
