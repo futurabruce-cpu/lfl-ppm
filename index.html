@@ -786,9 +786,13 @@ function showSummary() {
     // Generate the real Ladrillos-format PDF and upload it
     try {
       const doc = await buildDoc();
-      await uploadPDFToDashboard(doc);
+      if (doc && typeof doc.output === 'function') {
+        await uploadPDFToDashboard(doc);
+      } else {
+        console.warn('buildDoc did not return a valid PDF doc:', doc);
+      }
     } catch(e) {
-      console.warn('PDF upload failed:', e);
+      console.warn('PDF upload failed:', e.message, e);
     }
   })();
   document.getElementById('app-screen').style.display = 'none';
@@ -1268,9 +1272,8 @@ async function uploadPDFToDashboard(pdfDoc) {
 async function exportPDF() {
   try {
     const doc = await buildDoc();
-    const pdfBase64 = doc.output('datauristring').split(',')[1];
     doc.save(getFilename());
-    await uploadPDFToDashboard(pdfBase64);
+    await uploadPDFToDashboard(doc);
   } catch(e) { alert('PDF error: ' + e.message); }
 }
 
