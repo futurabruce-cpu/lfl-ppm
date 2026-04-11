@@ -1344,7 +1344,7 @@ function startScheduledJob(jobId, appType, jobType, siteName, siteAddress, compa
     }, 50);
   } else {
     const company = appType === 'mswebb' ? 'mswebb' : 'gow';
-    const jtype = jobType === 'Callout' ? 'callout' : 'ppm';
+    const jtype = jobType === 'Callout' ? 'callout' : jobType === 'Small Works' ? 'small_works' : 'ppm';
     window.location.href = `https://futurabruce-cpu.github.io/jobRAEF/?user=${encodeURIComponent(engineerEmail)}&jobtype=${jtype}&company=${encodeURIComponent(company)}&scheduled_job_id=${encodeURIComponent(jobId)}&site_name=${encodeURIComponent(siteName)}&site_address=${encodeURIComponent(siteAddress)}`;
   }
 }
