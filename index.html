@@ -796,10 +796,11 @@ function showSummary() {
       if (doc && typeof doc.output === 'function') {
         await uploadPDFToDashboard(doc);
       } else {
-        console.warn('buildDoc did not return a valid PDF doc:', doc);
+        showToast('⚠️ PDF could not be generated', false);
       }
     } catch(e) {
-      console.warn('PDF upload failed:', e.message, e);
+      showToast('⚠️ PDF error: ' + e.message, false);
+      console.error('PDF build/upload failed:', e);
     }
   })();
   document.getElementById('app-screen').style.display = 'none';
@@ -1281,7 +1282,7 @@ async function uploadPDFToDashboard(pdfDoc) {
       body: JSON.stringify({ id: lastSubmissionId, pdf_base64: pdfBase64 }),
       signal: controller.signal,
     });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) throw new Error('Upload HTTP ' + res.status);
   } finally {
     clearTimeout(timeout);
   }
