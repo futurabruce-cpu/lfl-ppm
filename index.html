@@ -377,6 +377,13 @@ function doSignOut() {
 // ── Questions from LFL certificate template ───────────────────────────────────
 const QUESTIONS = [
   // General System Information
+  // Page 1 certificate fields
+  { id: 28, label: "Extent of System",          text: "Enter the extent of system covered by this certificate.",                          type: "text", placeholder: "e.g. Full system — all zones" },
+  { id: 29, label: "Variations",                text: "Any variations from BS 5839-1:2017 recommendations? Enter 'None' if none.",         type: "text", placeholder: "None" },
+  { id: 30, label: "Logbook Updated?",          text: "Have relevant details of work carried out and faults been entered in the system logbook?", type: "yn" },
+  { id: 31, label: "False Alarms (last 12 mths)", text: "Number of false alarms in the last 12 months.",                                   type: "number", placeholder: "e.g. 0" },
+  { id: 32, label: "Automatic Detectors",       text: "Number of automatic detectors on site.",                                          type: "number", placeholder: "e.g. 24" },
+  // Page 2 checklist fields
   { id: 1,  label: "Manufacturer",               text: "What is the manufacturer of the fire alarm system?",             type: "text" },
   { id: 2,  label: "Model",                       text: "What is the model of the fire alarm system?",                    type: "text" },
   { id: 3,  label: "Type of System",              text: "What is the type of system?",                                    type: "text", placeholder: "e.g. Conventional, Addressable" },
@@ -994,21 +1001,27 @@ async function buildDoc() {
   // Row 6-7: Extent of system
   const extText = 'The extent of liability of the signatory is limited to the system described below. Extent of system covered by this certificate:';
   C(M, y, CW, 7, extText, A, false, 7); y+=7;
-  C(M, y, CW, 18, '', W, false, 7); y+=19;
+  C(M, y, CW, 18, answers[28]||'', W, false, 7); y+=19;
 
   // Row 8-9: Variations
   const varText = 'Variations from the recommendations of clause 45 of BS 58398-1:2017 for periodic or annual inspection and test (as applicable):';
   C(M, y, CW, 7, varText, A, false, 7); y+=7;
-  C(M, y, CW, 15, '', W, false, 7); y+=16;
+  C(M, y, CW, 15, answers[29]||'', W, false, 7); y+=16;
 
   // Row 10: Logbook
+  const logbookVal = answers[30] ? (answers[30] === 'Yes' ? 'YES' : 'NO') : 'YES / NO *';
   C(M,       y, CW-38, 10, 'Relevant details of the work carried out and faults identified have been entered in the system logbook?', A, false, 7.5);
-  C(M+CW-38, y, 38,    10, 'YES / NO *\n* Delete as appropriate', W, true, 7.5); y+=11;
+  C(M+CW-38, y, 38,    10, logbookVal + '\n* Delete as appropriate', W, true, 7.5); y+=11;
 
   // Rows 11-13: False alarms
   const fc = CW - 60, mc = 14, rc = 46;
+  const falseAlarms = answers[31] !== undefined ? String(answers[31]) : '';
+  const autoDetectors = answers[32] !== undefined ? String(answers[32]) : '';
+  const falseAlarmRate = (answers[31] && answers[32] && Number(answers[32]) > 0)
+    ? ((Number(answers[31]) / Number(answers[32])) * 100).toFixed(1)
+    : '';
   C(M,       y, fc, 8, 'Number of false alarms in the last 12 months:', A, false, 7.5);
-  C(M+fc,    y, mc, 8, '(x)', W, false, 7.5);
+  C(M+fc,    y, mc, 8, falseAlarms, W, true, 7.5);
   // right cell spans rows 11-12
   doc.setFillColor(...W); doc.setDrawColor(...K); doc.setLineWidth(lw);
   doc.rect(M+fc+mc, y, rc, 16, 'FD');
@@ -1016,9 +1029,9 @@ async function buildDoc() {
   doc.text(doc.splitTextToSize('Enter Y in box for Category M Systems and enter "0" below', rc-2), M+fc+mc+1.5, y+4);
   y+=8;
   C(M,       y, fc, 8, 'Number of Automatic Detectors:', A, false, 7.5);
-  C(M+fc,    y, mc, 8, '(y)', W, false, 7.5); y+=9;
+  C(M+fc,    y, mc, 8, autoDetectors, W, true, 7.5); y+=9;
   C(M,       y, fc+mc, 8, 'Number of false alarms per 100 Detectors per Annum (x/y)x100:', A, false, 7.5);
-  C(M+fc+mc, y, rc, 8, '', W, false, 7.5); y+=9;
+  C(M+fc+mc, y, rc, 8, falseAlarmRate, W, true, 7.5); y+=9;
 
   // Row 14: Remedial works note
   C(M, y, CW, 8, 'Any Remedial works / actions deemed necessary are detailed on the Comments Sheet', A, true, 8); y+=9;
