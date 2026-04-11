@@ -1036,18 +1036,21 @@ async function buildDoc() {
   // Row 14: Remedial works note
   C(M, y, CW, 8, 'Any Remedial works / actions deemed necessary are detailed on the Comments Sheet', A, true, 8); y+=9;
 
-  // Signature blocks
+  // Signature blocks — populated from engineer/customer signatures captured at end of app
   const sigH = 14, nameH = 8;
+  const sigDate = siteDetails.date ? new Date(siteDetails.date+'T00:00:00').toLocaleDateString('en-GB') : '';
   [
-    ['On behalf of the client:', null, ''],
-    ['On behalf of Ladrillos Facilities Ltd:', null, siteDetails.engineer||''],
-  ].forEach(([lbl, sigKey, name]) => {
+    ['On behalf of the client:', answers['sig_customer']||null, answers['customer_name']||'', sigDate],
+    ['On behalf of Ladrillos Facilities Ltd:', answers['sig_engineer']||null, siteDetails.engineer||'', sigDate],
+  ].forEach(([lbl, sigData, name, date]) => {
     C(M, y, CW, 8, lbl, A, true, 8); y+=8;
-    C(M, y, CW, sigH, '', W, false, 8); y+=sigH;
-    C(M,          y, CW/2-16, nameH, 'Print Name: '+name, A, false, 7.5);
+    C(M, y, CW, sigH, '', W, false, 8);
+    if (sigData) { try { doc.addImage(sigData, 'PNG', M+1, y+1, 60, sigH-2); } catch(e) {} }
+    y+=sigH;
+    C(M,          y, CW/2-16, nameH, 'Print Name: '+(name||''), A, false, 7.5);
     C(M+CW/2-16,  y, 16,      nameH, '', W, false, 7.5);
     C(M+CW/2,     y, 14,      nameH, 'Date:', A, false, 7.5);
-    C(M+CW/2+14,  y, CW/2-14, nameH, '', W, false, 7.5);
+    C(M+CW/2+14,  y, CW/2-14, nameH, date||'', W, false, 7.5);
     y += nameH+1;
   });
 
