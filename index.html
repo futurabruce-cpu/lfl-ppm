@@ -780,10 +780,16 @@ function normalisePhoto(file, cb) {
 
 function showSummary() {
   clearDraft();
-  // Generate PDF and submit to dashboard in background
+  // Generate the proper Ladrillos PDF and submit + upload to dashboard
   (async () => {
     await submitToDashboard(null);
-    // PDF is generated server-side automatically — no upload needed from device
+    // Generate the real Ladrillos-format PDF and upload it
+    try {
+      const doc = await buildDoc();
+      await uploadPDFToDashboard(doc);
+    } catch(e) {
+      console.warn('PDF upload failed:', e);
+    }
   })();
   document.getElementById('app-screen').style.display = 'none';
   const sum = document.getElementById('summary-screen');
