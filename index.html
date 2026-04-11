@@ -859,10 +859,12 @@ function showSummary() {
   restartBtn.innerHTML = '🏠 Return to Home';
   restartBtn.onclick = () => {
     currentIndex = 0; answers = {}; siteDetails = {}; sigContexts = {}; selectedServiceType = '';
+    window._scheduledJobId = null;
     clearDraft();
     document.getElementById('summary-screen').style.display = 'none';
-    document.getElementById('site-screen').style.display = 'flex';
+    document.getElementById('site-screen').style.display = 'none';
     document.getElementById('app-screen').style.display = 'none';
+    document.getElementById('picker-screen').style.display = 'flex';
     document.getElementById('sd-date').value = new Date().toISOString().split('T')[0];
     document.querySelectorAll('#service-type-row .choice-btn').forEach(b => b.classList.remove('selected'));
     window.scrollTo({ top: 0 });
