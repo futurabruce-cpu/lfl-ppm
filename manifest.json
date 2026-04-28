@@ -1,0 +1,24 @@
+{
+  "name": "GOW Worksheets",
+  "short_name": "Worksheets",
+  "description": "Fire alarm service worksheets for GOW Systems engineers",
+  "start_url": "/lfl-ppm/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#F5A800",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

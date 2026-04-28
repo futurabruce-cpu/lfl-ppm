@@ -6,7 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Ladrillos Fire PPM" />
+  <meta name="apple-mobile-web-app-title" content="GOW Worksheets" />
+  <meta name="theme-color" content="#F5A800" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
   <title>Ladrillos Fire PPM</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
@@ -1442,6 +1445,14 @@ function startScheduledJob(jobId, appType, jobType, siteName, siteAddress, compa
     } catch(e) { /* silently fail */ }
   };
 })();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/lfl-ppm/sw.js')
+        .catch(err => console.warn('SW registration failed:', err));
+    });
+  }
 </script>
 </body>
 </html>
